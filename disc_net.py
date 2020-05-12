@@ -14,6 +14,7 @@ class Actor(nn.Module):
         self.fc3 = nn.Linear(64, 32)
         self.fc4 = nn.Linear(32, 32)
         self.fc5 = nn.Linear(32, output_size)
+        self.output_size = output_size
 
         nn.init.orthogonal_(self.fc1.weight)
         nn.init.orthogonal_(self.fc2.weight)
@@ -22,11 +23,13 @@ class Actor(nn.Module):
         nn.init.orthogonal_(self.fc5.weight)
 
     def forward(self, x):
-        x = torch.relu(self.mean_fc1(x))
-        x = torch.relu(self.mean_fc2(x))
-        x = torch.relu(self.mean_fc3(x))
-        x = torch.relu(self.mean_fc4(x))
-        x = torch.softmax(self.mean_fc5(x))
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = torch.relu(self.fc4(x))
+        x = self.fc5(x)
+        x = x.view(-1,self.output_size)
+        x = torch.softmax(x, dim=1)
         return x
 
     # select a action
@@ -34,11 +37,11 @@ class Actor(nn.Module):
     def action(self, state):
         if not isinstance(state, torch.Tensor):
             state = torch.from_numpy(state).float()
-        probs = self.forward(state)
+        probs = self.forward(state).view(-1)
         dist = Categorical(probs=probs)
         a = dist.sample()
         p_a = probs[a]
-        return a, p_a.detach(), a
+        return a.item(), p_a.detach(), a.item()
 
 
 # value function

@@ -46,6 +46,8 @@ class HierPolicy:
             dones.append(done)
             total_reward += r
             curr_steps += high_len
+            if done:
+                break
         
         probs = torch.Tensor(probs)
         prev_states = torch.Tensor(prev_states)
@@ -94,6 +96,8 @@ class HierPolicy:
             rewards.append(r)
             dones.append(done)
             total_reward += r
+            if done:
+                break
 
         probs = torch.Tensor(probs)
         prev_states = torch.Tensor(prev_states)
@@ -132,8 +136,8 @@ class DiscPolicy:
             done_batch,
         ) = self.memory.get_batch(batch_size)
 
-        probs = self.actor.policy_out(prev_s_batch)
-        new_prob = mlsh_util.get_disc_prob(probs, a_batch, self.actor.s)
+        probs = self.actor(prev_s_batch)
+        new_prob = mlsh_util.get_disc_prob(probs, a_batch)
         ratio = torch.exp(new_prob - prob_batch)
         surr1 = ratio * advantage_batch
         surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch

@@ -24,7 +24,7 @@ def get_v_targ(r_batch, gamma):
 
 
 def get_disc_prob(prob, a_batch):
-    return prob.gather(1, a_batch).view(-1)
+    return prob.gather(1, a_batch.long()).view(-1)
 
 
 def get_cont_prob(y, d, raw_a_batch, scale):
