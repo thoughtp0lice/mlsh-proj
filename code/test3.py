@@ -1,4 +1,5 @@
 import time
+import random
 import argparse
 import test_envs
 import gym
@@ -7,40 +8,30 @@ import torch
 import numpy as np
 import wandb
 import policy
-import mlsh_util
 
 
 def rollout(env, agent, N, T, high_len, gamma, lam):
     agent.forget()
     reward = 0
     for i in range(N):
-        # reset env while keep the same task
         goals = env.env.goals
         env.reset()
         env.env.goals = goals
         reward += agent.high_rollout(env, T, high_len, gamma, lam)
-    wandb.log({"reward": reward / N})
-
-
-def save_files(agent):
-    agent.save()
-    wandb.save("../policy")
-    wandb.save("train.py")
-    wandb.save("rollout_memory.py")
-
+    wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=1000, type=int)
+    parser.add_argument("-N", default=50, type=int)
     parser.add_argument("-W", default=9, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=100, type=int)
     parser.add_argument("-K", default=20, type=int)
     parser.add_argument("-T", default=50, type=int)
-    parser.add_argument("--high_len", default=10, type=int)
-    parser.add_argument("--bs", default=32, type=int)
+    parser.add_argument("--high_len", default=10, type = int)
+    parser.add_argument("--bs", default=16, type=int)
     parser.add_argument("--lr", default=1e-4, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--lam", default=0.95, type=float)
@@ -50,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=12345, type=int)
-    parser.add_argument("-c", action="store_true")  # continue training
+    parser.add_argument("-c", action="store_true") # continue training
 
     args = parser.parse_args()
 
@@ -83,14 +74,16 @@ if __name__ == "__main__":
     c2 = args.c2
     # display step
     display = args.display
-    # record step
+    #record step
     record = args.record
-    # random seed
-    seed = args.seed
-    torch.manual_seed(seed)
-
+    #random seed
+    ran_seed = args.seed
+    torch.manual_seed(ran_seed)
+    random.seed(ran_seed)
+    np.random.seed(ran_seed)
     env = gym.make("MovementBandits-v0")
-    env.seed(seed)
+    env.seed(ran_seed)
+    env.action_space.seed(ran_seed)
 
     wandb.init(
         config={
@@ -108,17 +101,16 @@ if __name__ == "__main__":
             "c1": c1,
             "c2": c2,
             "lr": lr,
-            "seed": seed,
+            "seed": ran_seed,
         },
-        name="mlsh-" + time_stamp,
+        name="hier-" + time_stamp,
     )
 
     agent = policy.HierPolicy(6, 5, N * T, 2, lr)
+
+    env.reset()
+    env.env.randomizeCorrect()
     for i in range(num_tasks):
-        print("Current task num:", i)
-        env.reset()
-        env.env.randomizeCorrect()
-        agent.high_init()
         for _ in range(W):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
@@ -130,8 +122,9 @@ if __name__ == "__main__":
         if i % record == 0:
             goals = env.env.goals
             record_env = wrappers.Monitor(
-                env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
+                env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)
             )
             record_env.reset()
             record_env.env.env.goals = goals
+            agent.forget()
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)

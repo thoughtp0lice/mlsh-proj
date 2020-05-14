@@ -26,18 +26,26 @@ class HierPolicy:
         self.lr = lr
         for i in range(num_low):
             if disc:
-                self.low.append(DiscPolicy(input_size, output_size, memory_capacity, lr))
+                self.low.append(
+                    DiscPolicy(input_size, output_size, memory_capacity, lr)
+                )
             else:
                 self.low.append(
-                    ContPolicy(input_size, output_size, action_scale, memory_capacity, lr)
+                    ContPolicy(
+                        input_size, output_size, action_scale, memory_capacity, lr
+                    )
                 )
 
     def save(self):
         torch.save(self.high.actor.state_dict(), "../policy/high/model_actor_cont.pt")
         torch.save(self.low.critic.state_dict(), "../policy/high/model_critic_cont.pt")
         for i, low_p in enumerate(self.low):
-            torch.save(low_p.actor.state_dict(), "../policy/low/model_actor_cont%r.pt"%i)
-            torch.save(low_p.critic.state_dict(), "../policy/low/model_critic_cont%r.pt" % i)
+            torch.save(
+                low_p.actor.state_dict(), "../policy/low/model_actor_cont%r.pt" % i
+            )
+            torch.save(
+                low_p.critic.state_dict(), "../policy/low/model_critic_cont%r.pt" % i
+            )
 
     def forget(self):
         self.high.memory.clear()
@@ -45,7 +53,9 @@ class HierPolicy:
             low_p.memory.clear()
 
     def high_init(self):
-        self.high = DiscPolicy(self.input_size, self.num_low, self.memory_capacity, self.lr)
+        self.high = DiscPolicy(
+            self.input_size, self.num_low, self.memory_capacity, self.lr
+        )
 
     def warmup_optim_step(self, epsilon, gamma, batch_size, c1, c2):
         self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log=True)
@@ -107,7 +117,9 @@ class HierPolicy:
 
         return total_reward
 
-    def low_rollout(self, env, action, high_len, gamma, lam, render=False, record=False):
+    def low_rollout(
+        self, env, action, high_len, gamma, lam, render=False, record=False
+    ):
         low_policy = self.low[action]
 
         total_reward = 0
@@ -129,7 +141,7 @@ class HierPolicy:
             action, prob, raw_a = low_policy.actor.action(prev_state)
             if render:
                 env.render()
-            post_state, r, _, _ = env.step(action)
+            post_state, r, done, _ = env.step(action)
             probs.append(prob)
             prev_states.append(prev_state)
             post_states.append(post_state)
@@ -139,7 +151,7 @@ class HierPolicy:
             total_reward += r
             if done:
                 break
-        
+
         probs = torch.Tensor(probs)
         prev_states = torch.Tensor(prev_states)
         actions = torch.Tensor(actions).reshape(-1, low_policy.memory.action_size)
@@ -172,7 +184,7 @@ class DiscPolicy:
     def optim_step(self, epsilon, gamma, batch_size, c1, c2, log=False):
         if self.memory.curr == 0:
             return 0
-        
+
         (
             prev_s_batch,
             a_batch,
@@ -192,6 +204,7 @@ class DiscPolicy:
         surr_loss = -torch.mean(torch.min(surr1, surr2))
 
         v_curr = self.critic(prev_s_batch).view(-1)
+        v_targ = r_batch + gamma*self.critic(prev_s_batch).view(-1)
         v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
         ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
@@ -229,10 +242,12 @@ class ContPolicy:
             list(self.actor.parameters()) + list(self.critic.parameters()), lr=lr
         )
 
-    def optim_step(self, optimizer, memory, epsilon, gamma, batch_size, c1, c2, log=False):
+    def optim_step(
+        self, optimizer, memory, epsilon, gamma, batch_size, c1, c2, log=False
+    ):
         if self.memory.curr == 0:
             return 0
-        
+
         (
             prev_s_batch,
             a_batch,
