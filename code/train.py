@@ -2,6 +2,7 @@ import time
 import argparse
 import test_envs
 import gym
+from gym import wrappers
 import torch
 import numpy as np
 import wandb
@@ -23,13 +24,14 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
 def save_files(agent):
     agent.save()
     wandb.save("../policy")
-    wandb.save("./")
+    wandb.save("train.py")
+    wandb.save("rollout_memory.py")
 
 if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=1000, type=int)
+    parser.add_argument("-N", default=500, type=int)
     parser.add_argument("-W", default=9, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=100, type=int)
@@ -42,9 +44,9 @@ if __name__ == "__main__":
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
-    parser.add_argument("--c2", default=1e-2, type=float)
+    parser.add_argument("--c2", default=1e-10, type=float)
     parser.add_argument("--display", default=10, type=int)
-    parser.add_argument("--record", default=100, type=int)
+    parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=12345, type=int)
     parser.add_argument("-c", action="store_true") # continue training
 
@@ -88,8 +90,6 @@ if __name__ == "__main__":
     env = gym.make("MovementBandits-v0")
     env.seed(seed)
 
-    input_size = 8
-    action_size = 2
     wandb.init(
         config={
             "num of actors": N,
@@ -125,3 +125,9 @@ if __name__ == "__main__":
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
                 agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2)
+        if i % record == 0:
+            goals = env.env.goals
+            record_env = wrappers.Monitor(env, '../mlsh_videos/run-%s/task-%d' % (time_stamp, i))
+            record_env.reset()
+            record_env.env.env.goals = goals
+            agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)

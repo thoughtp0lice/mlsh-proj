@@ -55,7 +55,7 @@ class HierPolicy:
         for low_p in self.low:
             low_p.optim_step(epsilon, gamma, batch_size, c1, c2)
 
-    def high_rollout(self, env, T, high_len, gamma, lam, render=False):
+    def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
         total_reward = 0
         advantages = []
         probs = []
@@ -66,12 +66,15 @@ class HierPolicy:
         dones = []
 
         curr_steps = 0
-        post_state = env.env.obs()
+        if record:
+            post_state = env.env.env.obs()
+        else:
+            post_state = env.env.obs()
         while curr_steps < T:
             prev_state = post_state
             action, prob, raw_a = self.high.actor.action(prev_state)
             post_state, r, done = self.low_rollout(
-                env, action, high_len, gamma, lam, render=render
+                env, action, high_len, gamma, lam, render=render, record=record
             )
             probs.append(prob)
             prev_states.append(prev_state)
@@ -104,7 +107,7 @@ class HierPolicy:
 
         return total_reward
 
-    def low_rollout(self, env, action, high_len, gamma, lam, render=False):
+    def low_rollout(self, env, action, high_len, gamma, lam, render=False, record=False):
         low_policy = self.low[action]
 
         total_reward = 0
@@ -117,7 +120,10 @@ class HierPolicy:
         dones = []
 
         done = False
-        post_state = env.env.obs()
+        if record:
+            post_state = env.env.env.obs()
+        else:
+            post_state = env.env.obs()
         for i in range(high_len):
             prev_state = post_state
             action, prob, raw_a = low_policy.actor.action(prev_state)
