@@ -21,9 +21,8 @@ def rollout(N, env, T, p, gamma, lam):
         dones = []
 
         done = False
-        goals = env.env.goals 
         env.reset()
-        env.env.goals = goals 
+        env.env.realgoal = 0
         post_state = env.env.obs()
         for i in range(T):
             prev_state = post_state
@@ -62,26 +61,26 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     # num of actors
-    N = 100
+    N = 5
     # number of episodes
-    iterations = 500
+    iterations = 10000
     # number of optimization epochs
     K = 10
     # Horizon
     T = 50
     # batch size
-    batch_size = 64
+    batch_size = 16
     # learning rate
     lr = 1e-4
     # decay
-    gamma = 0.999
+    gamma = 0.99
     # GAE prameters
     lam = 0.95
     # clipping
     epsilon = 0.2
     # parameters in loss fuction
-    c1 = 1
-    c2 = 2
+    c1 = 0.5
+    c2 = 1e-3
     # display step
     display = 10
 
@@ -109,22 +108,22 @@ if __name__ == "__main__":
     )
 
     for iter in range(iterations):
+        env.reset()
         p.memory.clear()
         reward = rollout(N, env, T, p, gamma, lam)
-        wandb.log({"mean duration": reward})
+        wandb.log({"reward": reward})
         for i in range(K):
             loss = p.optim_step(
-                epsilon, gamma, batch_size, c1, c2, log=True
+                epsilon, gamma, batch_size, c1, c2, bootstrap=True
             )
         if iter % display == 0 and iter != 0:
             print(
-                "Iteration %d Loss = %.3f duration = %.3f" % (iter, loss, reward)
+                "Iteration %d Loss = %.3f reward = %.3f" % (iter, loss, reward)
             )
-        if iter % 25 == 0:
-            goals = env.env.goals
+        if iter % 200 == 0:
+            p.memory.clear()
             record_env = wrappers.Monitor(env, './ppo_videos/run-%s/epi-%d'%(time_stamp,iter))
             record_env.reset()
-            record_env.env.env.goals = goals 
             observation = record_env.env.env.obs()
             done = False
             x = 0

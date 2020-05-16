@@ -14,9 +14,9 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     agent.forget()
     reward = 0
     for i in range(N):
-        goals = env.env.goals
+        realgoal = 0
         env.reset()
-        env.env.goals = goals
+        env.env.realgoal = 0
         reward += agent.high_rollout(env, T, high_len, gamma, lam)
     wandb.log({"reward": reward/N})
 
@@ -24,11 +24,11 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=50, type=int)
-    parser.add_argument("-W", default=9, type=int)
+    parser.add_argument("-N", default=200, type=int)
+    parser.add_argument("-W", default=0, type=int)
     parser.add_argument("-U", default=1, type=int)
-    parser.add_argument("--tasks", default=100, type=int)
-    parser.add_argument("-K", default=20, type=int)
+    parser.add_argument("--tasks", default=1000, type=int)
+    parser.add_argument("-K", default=25, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type = int)
     parser.add_argument("--bs", default=16, type=int)
@@ -37,9 +37,9 @@ if __name__ == "__main__":
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
-    parser.add_argument("--c2", default=1e-10, type=float)
+    parser.add_argument("--c2", default=1e-4, type=float)
     parser.add_argument("--display", default=10, type=int)
-    parser.add_argument("--record", default=1, type=int)
+    parser.add_argument("--record", default=100, type=int)
     parser.add_argument("--seed", default=12345, type=int)
     parser.add_argument("-c", action="store_true") # continue training
 
@@ -83,7 +83,6 @@ if __name__ == "__main__":
     np.random.seed(ran_seed)
     env = gym.make("MovementBandits-v0")
     env.seed(ran_seed)
-    env.action_space.seed(ran_seed)
 
     wandb.init(
         config={
@@ -120,11 +119,10 @@ if __name__ == "__main__":
             for _ in range(K):
                 agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2)
         if i % record == 0:
-            goals = env.env.goals
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)
             )
             record_env.reset()
-            record_env.env.env.goals = goals
+            record_env.env.env.realgoal = 0
             agent.forget()
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)

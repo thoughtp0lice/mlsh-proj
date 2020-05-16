@@ -5,3 +5,4 @@ venv
 gym
 wandb
 mlsh_videos
+.vscode

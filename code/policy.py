@@ -58,12 +58,12 @@ class HierPolicy:
         )
 
     def warmup_optim_step(self, epsilon, gamma, batch_size, c1, c2):
-        self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log=True)
+        self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True)
 
     def joint_optim_step(self, epsilon, gamma, batch_size, c1, c2):
-        self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log=True)
-        for low_p in self.low:
-            low_p.optim_step(epsilon, gamma, batch_size, c1, c2)
+        self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True)
+        for i, low_p in enumerate(self.low):
+            low_p.optim_step(epsilon, gamma, batch_size, c1, c2, log=str(i)+"low_", bootstrap=True)
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
         total_reward = 0
@@ -181,7 +181,7 @@ class DiscPolicy:
             list(self.actor.parameters()) + list(self.critic.parameters()), lr=lr
         )
 
-    def optim_step(self, epsilon, gamma, batch_size, c1, c2, log=False):
+    def optim_step(self, epsilon, gamma, batch_size, c1, c2, log="", bootstrap=False):
         if self.memory.curr == 0:
             return 0
 
@@ -204,7 +204,8 @@ class DiscPolicy:
         surr_loss = -torch.mean(torch.min(surr1, surr2))
 
         v_curr = self.critic(prev_s_batch).view(-1)
-        v_targ = r_batch + gamma*self.critic(prev_s_batch).view(-1)
+        if bootstrap:
+            v_targ = r_batch + gamma*self.critic(prev_s_batch).view(-1)
         v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
         ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
@@ -216,17 +217,16 @@ class DiscPolicy:
         for param in list(self.actor.parameters()) + list(self.critic.parameters()):
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-        if log:
-            wandb.log(
-                {
-                    "surr_loss": surr_loss,
-                    "v_loss": v_loss / c1,
-                    "ent_loss": ent_loss / c2,
-                    "loss": loss,
-                    "advantage": torch.mean(advantage_batch),
-                    "ratio": torch.mean(abs(1 - ratio)),
-                }
-            )
+        wandb.log(
+            {
+                log+"surr_loss": surr_loss,
+                log+"v_loss": v_loss / c1,
+                log+"ent_loss": ent_loss / c2,
+                log+"loss": loss,
+                log+"advantage": torch.mean(advantage_batch),
+                log+"ratio": torch.mean(abs(1 - ratio)),
+            }
+        )
 
         return loss
 
@@ -243,7 +243,7 @@ class ContPolicy:
         )
 
     def optim_step(
-        self, optimizer, memory, epsilon, gamma, batch_size, c1, c2, log=False
+        self, optimizer, memory, epsilon, gamma, batch_size, c1, c2, log=False, bootstrap=False
     ):
         if self.memory.curr == 0:
             return 0
@@ -267,6 +267,8 @@ class ContPolicy:
         surr_loss = -torch.mean(torch.min(surr1, surr2))
 
         v_curr = self.critic(prev_s_batch).view(-1)
+        if bootstrap:
+            v_targ = r_batch + gamma*self.critic(prev_s_batch).view(-1)
         v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
         ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))
