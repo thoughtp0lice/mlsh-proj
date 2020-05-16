@@ -58,12 +58,18 @@ class HierPolicy:
         )
 
     def warmup_optim_step(self, epsilon, gamma, batch_size, c1, c2):
-        self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True)
+        self.high.optim_step(
+            epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
+        )
 
     def joint_optim_step(self, epsilon, gamma, batch_size, c1, c2):
-        self.high.optim_step(epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True)
+        self.high.optim_step(
+            epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
+        )
         for i, low_p in enumerate(self.low):
-            low_p.optim_step(epsilon, gamma, batch_size, c1, c2, log=str(i)+"low_", bootstrap=True)
+            low_p.optim_step(
+                epsilon, gamma, batch_size, c1, c2, log=str(i) + "low_", bootstrap=True
+            )
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
         total_reward = 0
@@ -74,17 +80,39 @@ class HierPolicy:
         rewards = []
         post_states = []
         dones = []
+        low_roll_lens = []
+
+        low_roll = {
+            "advantages": [],
+            "probs": [],
+            "prev_states": [],
+            "actions": [],
+            "rewards": [],
+            "post_states": [],
+            "dones": [],
+            "deltas": torch.tensor([]),
+            "v_targ": [],
+        }
 
         curr_steps = 0
+
         if record:
             post_state = env.env.env.obs()
         else:
             post_state = env.env.obs()
+
         while curr_steps < T:
             prev_state = post_state
             action, prob, raw_a = self.high.actor.action(prev_state)
-            post_state, r, done = self.low_rollout(
-                env, action, high_len, gamma, lam, render=render, record=record
+            post_state, r, done, roll_len = self.low_rollout(
+                env,
+                action,
+                high_len,
+                gamma,
+                lam,
+                low_roll,
+                render=render,
+                record=record,
             )
             probs.append(prob)
             prev_states.append(prev_state)
@@ -92,6 +120,7 @@ class HierPolicy:
             actions.append(raw_a)
             rewards.append(r)
             dones.append(done)
+            low_roll_lens.append(roll_len)
             total_reward += r
             curr_steps += high_len
             if done:
@@ -115,21 +144,56 @@ class HierPolicy:
             prev_states, actions, probs, rewards, post_states, advantages, v_targ, dones
         )
 
+        low_roll["probs"] = torch.Tensor(low_roll["probs"])
+        low_roll["prev_states"] = torch.Tensor(low_roll["prev_states"])
+        low_roll["actions"] = torch.Tensor(low_roll["actions"]).reshape(
+            -1, self.low[0].memory.action_size
+        )
+        low_roll["rewards"] = torch.Tensor(low_roll["rewards"])
+        low_roll["post_states"] = torch.Tensor(low_roll["post_states"])
+        low_roll["dones"] = torch.Tensor(low_roll["dones"])
+
+        for t in range(len(low_roll["deltas"])):
+            low_roll["advantages"].append(
+                mlsh_util.advantage(t, low_roll["deltas"], gamma, lam)
+            )
+        low_roll["advantages"] = torch.Tensor(low_roll["advantages"])
+
+        low_roll["v_targ"] = mlsh_util.get_v_targ(low_roll["rewards"], gamma)
+        
+        curr_t = 0
+        for roll_len, high_action in zip(low_roll_lens, actions):
+            low_policy = self.low[int(high_action.item())]
+            roll_range = slice(curr_t, curr_t + roll_len)
+            curr_t += roll_len
+            low_policy.memory.put_batch(
+                low_roll["prev_states"][roll_range],
+                low_roll["actions"][roll_range],
+                low_roll["probs"][roll_range],
+                low_roll["rewards"][roll_range],
+                low_roll["post_states"][roll_range],
+                low_roll["advantages"][roll_range],
+                low_roll["v_targ"][roll_range],
+                low_roll["dones"][roll_range],
+            )
+
         return total_reward
 
     def low_rollout(
-        self, env, action, high_len, gamma, lam, render=False, record=False
+        self, env, action, high_len, gamma, lam, low_roll, render=False, record=False
     ):
         low_policy = self.low[action]
 
         total_reward = 0
-        advantages = []
-        probs = []
-        prev_states = []
-        actions = []
-        rewards = []
-        post_states = []
-        dones = []
+        advantages = low_roll["advantages"]
+        probs = low_roll["probs"]
+        prev_states = low_roll["prev_states"]
+        actions = low_roll["actions"]
+        rewards = low_roll["rewards"]
+        post_states = low_roll["post_states"]
+        dones = low_roll["dones"]
+
+        rollout_len = 0
 
         done = False
         if record:
@@ -149,27 +213,21 @@ class HierPolicy:
             rewards.append(r)
             dones.append(done)
             total_reward += r
+            rollout_len += 1
             if done:
                 break
+        
+        prev_d = torch.tensor(prev_states[-rollout_len:]).float()
+        post_d = torch.tensor(post_states[-rollout_len:]).float()
+        rewards_d = torch.tensor(rewards[-rollout_len:]).float()
 
-        probs = torch.Tensor(probs)
-        prev_states = torch.Tensor(prev_states)
-        actions = torch.Tensor(actions).reshape(-1, low_policy.memory.action_size)
-        rewards = torch.Tensor(rewards)
-        post_states = torch.Tensor(post_states)
-        dones = torch.Tensor(dones)
+        deltas = low_policy.critic.delta(
+            prev_d, post_d, rewards_d, gamma
+        ).view(-1)
 
-        deltas = low_policy.critic.delta(prev_states, post_states, rewards, gamma)
-        for t in range(len(deltas)):
-            advantages.append(mlsh_util.advantage(t, deltas, gamma, lam))
-        advantages = torch.Tensor(advantages)
+        low_roll["deltas"] = torch.cat((low_roll["deltas"], deltas), 0)
 
-        v_targ = mlsh_util.get_v_targ(rewards, gamma)
-        low_policy.memory.put_batch(
-            prev_states, actions, probs, rewards, post_states, advantages, v_targ, dones
-        )
-
-        return post_state, total_reward, done
+        return post_state, total_reward, done, rollout_len
 
 
 class DiscPolicy:
@@ -205,7 +263,7 @@ class DiscPolicy:
 
         v_curr = self.critic(prev_s_batch).view(-1)
         if bootstrap:
-            v_targ = r_batch + gamma*self.critic(prev_s_batch).view(-1)
+            v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (1 - done_batch)
         v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
         ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
@@ -217,14 +275,15 @@ class DiscPolicy:
         for param in list(self.actor.parameters()) + list(self.critic.parameters()):
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
+
         wandb.log(
             {
-                log+"surr_loss": surr_loss,
-                log+"v_loss": v_loss / c1,
-                log+"ent_loss": ent_loss / c2,
-                log+"loss": loss,
-                log+"advantage": torch.mean(advantage_batch),
-                log+"ratio": torch.mean(abs(1 - ratio)),
+                log + "surr_loss": surr_loss,
+                log + "v_loss": v_loss / c1,
+                log + "ent_loss": ent_loss / c2,
+                log + "loss": loss,
+                log + "advantage": torch.mean(advantage_batch),
+                log + "ratio": torch.mean(abs(1 - ratio)),
             }
         )
 
@@ -243,7 +302,16 @@ class ContPolicy:
         )
 
     def optim_step(
-        self, optimizer, memory, epsilon, gamma, batch_size, c1, c2, log=False, bootstrap=False
+        self,
+        optimizer,
+        memory,
+        epsilon,
+        gamma,
+        batch_size,
+        c1,
+        c2,
+        log=False,
+        bootstrap=False,
     ):
         if self.memory.curr == 0:
             return 0
@@ -268,7 +336,7 @@ class ContPolicy:
 
         v_curr = self.critic(prev_s_batch).view(-1)
         if bootstrap:
-            v_targ = r_batch + gamma*self.critic(prev_s_batch).view(-1)
+            v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (1 - done_batch)
         v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
         ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))
