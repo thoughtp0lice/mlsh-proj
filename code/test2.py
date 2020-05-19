@@ -6,6 +6,7 @@ import wandb
 import test_envs
 import gym
 from gym import wrappers
+from pyvirtualdisplay import Display
 import numpy as np
 
 def rollout(N, env, T, p, gamma, lam):
@@ -60,16 +61,19 @@ def rollout(N, env, T, p, gamma, lam):
 if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
+    virtual_display = Display(visible=0, size=(1400, 900))
+    virtual_display.start()
+
     # num of actors
-    N = 5
+    N = 100
     # number of episodes
     iterations = 10000
     # number of optimization epochs
-    K = 10
+    K = 50
     # Horizon
     T = 50
     # batch size
-    batch_size = 16
+    batch_size = 64
     # learning rate
     lr = 1e-4
     # decay
@@ -79,8 +83,8 @@ if __name__ == "__main__":
     # clipping
     epsilon = 0.2
     # parameters in loss fuction
-    c1 = 0.5
-    c2 = 1e-3
+    c1 = 1
+    c2 = 1
     # display step
     display = 10
 

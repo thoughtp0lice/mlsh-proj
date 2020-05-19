@@ -7,6 +7,7 @@ from gym import wrappers
 import torch
 import numpy as np
 import wandb
+from pyvirtualdisplay import Display
 import policy
 
 
@@ -21,6 +22,8 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
+    virtual_display = Display(visible=0, size=(1400, 900))
+    virtual_display.start()
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
@@ -28,10 +31,10 @@ if __name__ == "__main__":
     parser.add_argument("-W", default=0, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=1000, type=int)
-    parser.add_argument("-K", default=25, type=int)
+    parser.add_argument("-K", default=50, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type = int)
-    parser.add_argument("--bs", default=16, type=int)
+    parser.add_argument("--bs", default=64, type=int)
     parser.add_argument("--lr", default=1e-4, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--lam", default=0.95, type=float)
@@ -117,7 +120,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2)
+                agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2, 2)
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)

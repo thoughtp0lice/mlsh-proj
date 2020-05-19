@@ -62,13 +62,13 @@ class HierPolicy:
             epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
         )
 
-    def joint_optim_step(self, epsilon, gamma, batch_size, c1, c2):
+    def joint_optim_step(self, epsilon, gamma, batch_size, c1, c2, c2_low):
         self.high.optim_step(
             epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
         )
         for i, low_p in enumerate(self.low):
             low_p.optim_step(
-                epsilon, gamma, batch_size, c1, c2, log=str(i) + "low_", bootstrap=True
+                epsilon, gamma, batch_size, c1, c2_low, log=str(i) + "low_", bootstrap=True
             )
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
@@ -263,7 +263,7 @@ class DiscPolicy:
 
         v_curr = self.critic(prev_s_batch).view(-1)
         if bootstrap:
-            v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (1 - done_batch)
+            v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
         v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
         ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))

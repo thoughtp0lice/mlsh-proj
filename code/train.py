@@ -7,6 +7,7 @@ from gym import wrappers
 import torch
 import numpy as np
 import wandb
+from pyvirtualdisplay import Display
 import policy
 import mlsh_util
 
@@ -31,6 +32,9 @@ def save_files(agent):
 
 
 if __name__ == "__main__":
+    virtual_display = Display(visible=0, size=(1400, 900))
+    virtual_display.start()     
+    
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
@@ -38,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument("-W", default=60, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
-    parser.add_argument("-K", default=15, type=int)
+    parser.add_argument("-K", default=50, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type=int)
     parser.add_argument("--bs", default=64, type=int)
@@ -48,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
     parser.add_argument("--c2", default=1e-3, type=float)
+    parser.add_argument("--c2_low", default=2, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=12345, type=int)
@@ -82,6 +87,7 @@ if __name__ == "__main__":
     # parameters in loss fuction
     c1 = args.c1
     c2 = args.c2
+    c2_low = args.c2_low
     # display step
     display = args.display
     # record step
@@ -109,6 +115,7 @@ if __name__ == "__main__":
             "clipping": epsilon,
             "c1": c1,
             "c2": c2,
+            "c2_low": c2_low,
             "lr": lr,
             "seed": seed,
         },
@@ -148,7 +155,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2)
+                agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2, c2_low)
 
         if i % record == 0:
             agent.forget()
