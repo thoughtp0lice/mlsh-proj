@@ -57,18 +57,21 @@ class HierPolicy:
             self.input_size, self.num_low, self.memory_capacity, self.lr
         )
 
-    def warmup_optim_step(self, epsilon, gamma, batch_size, c1, c2):
-        self.high.optim_step(
+    def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2):
+        self.high.optim_epi(
             epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
         )
 
-    def joint_optim_step(self, epsilon, gamma, batch_size, c1, c2, c2_low):
-        self.high.optim_step(
+    def joint_optim_epi(self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15):
+        self.high.optim_epi(
             epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
         )
         for i, low_p in enumerate(self.low):
-            low_p.optim_step(
-                epsilon, gamma, batch_size, c1, c2_low, log=str(i) + "low_", bootstrap=True
+            if low_p.memory.curr < num_batch:
+                continue
+            size = int(low_p.memory.curr/num_batch)
+            low_p.optim_epi(
+                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", bootstrap=True
             )
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
@@ -240,7 +243,7 @@ class DiscPolicy:
         )
 
     def optim_epi(self, epsilon, gamma, batch_size, c1, c2, log="", bootstrap=False):
-        if self.memory.curr == 0:
+        if self.memory.curr == 0 or batch_size == 0:
             return 0
         
         losses = []
@@ -317,7 +320,7 @@ class ContPolicy:
         log=False,
         bootstrap=False,
     ):
-        if self.memory.curr == 0:
+        if self.memory.curr == 0 or batch_size == 0:
             return 0
         
         losses = []

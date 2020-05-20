@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("-W", default=0, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=1000, type=int)
-    parser.add_argument("-K", default=50, type=int)
+    parser.add_argument("-K", default=15, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type = int)
     parser.add_argument("--bs", default=64, type=int)
@@ -116,11 +116,11 @@ if __name__ == "__main__":
         for _ in range(W):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.warmup_optim_step(epsilon, gamma, batch_size, c1, c2)
+                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2)
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2, 2)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, 2)
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)

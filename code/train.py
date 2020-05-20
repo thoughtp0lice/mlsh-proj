@@ -39,11 +39,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", default=100, type=int)
-    parser.add_argument("-W", default=30, type=int)
+    parser.add_argument("-W", default=60, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
     parser.add_argument("-K", default=15, type=int)
-    parser.add_argument("--K2", default=50, type=int)
+    parser.add_argument("--K2", default=15, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type=int)
     parser.add_argument("--bs", default=64, type=int)
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
     parser.add_argument("--c2", default=1e-3, type=float)
-    parser.add_argument("--c2_low", default=2, type=float)
+    parser.add_argument("--c2_low", default=1, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=12345, type=int)
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             print("Warm up", w)
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.warmup_optim_step(epsilon, gamma, batch_size, c1, c2)
+                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2)
 
         if i % record == 0:
             record_env = wrappers.Monitor(
@@ -163,7 +163,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):
-                agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2, c2_low)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low)
 
         if i % record == 0:
             agent.forget()

@@ -84,7 +84,7 @@ if __name__ == "__main__":
     epsilon = 0.2
     # parameters in loss fuction
     c1 = 1
-    c2 = 1e-3
+    c2 = 1
     # display step
     display = 10
 

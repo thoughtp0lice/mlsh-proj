@@ -52,6 +52,7 @@ class RolloutMemory:
         )
     
     def iterate(self, size):
+        self.iter_curr = 0
         shuffle = np.random.permutation(self.curr)
 
         self.advantage_memory[:self.curr] = self.advantage_memory[shuffle]
