@@ -52,16 +52,16 @@ class RolloutMemory:
         )
     
     def iterate(self, size):
-        shuffle = np.random.permutation(curr)
+        shuffle = np.random.permutation(self.curr)
 
-        self.advantage_memory[:curr] = self.advantage_memory[shuffle]
-        self.prob_memory[:curr] = self.prob_memory[shuffle]
-        self.prev_state_memory[:curr] = self.prev_state_memory[shuffle]
-        self.action_memory[:curr] = self.action_memory[shuffle]
-        self.reward_memory[:curr] = self.reward_memory[shuffle]
-        self.post_state_memory[:curr] = self.post_state_memory[shuffle]
-        self.done_memory[:curr] = self.done_memory[shuffle]
-        self.v_targ[:curr] = self.v_targ[shuffle]
+        self.advantage_memory[:self.curr] = self.advantage_memory[shuffle]
+        self.prob_memory[:self.curr] = self.prob_memory[shuffle]
+        self.prev_state_memory[:self.curr] = self.prev_state_memory[shuffle]
+        self.action_memory[:self.curr] = self.action_memory[shuffle]
+        self.reward_memory[:self.curr] = self.reward_memory[shuffle]
+        self.post_state_memory[:self.curr] = self.post_state_memory[shuffle]
+        self.done_memory[:self.curr] = self.done_memory[shuffle]
+        self.v_targ[:self.curr] = self.v_targ[shuffle]
 
         while (self.curr - size) > self.iter_curr:
             yield (
@@ -73,4 +73,5 @@ class RolloutMemory:
             self.advantage_memory[self.iter_curr:self.iter_curr+size],
             self.v_targ[self.iter_curr:self.iter_curr+size],
             self.done_memory[self.iter_curr:self.iter_curr+size],
-        )   
+            )
+            self.iter_curr += size   

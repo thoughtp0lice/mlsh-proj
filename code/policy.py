@@ -239,55 +239,59 @@ class DiscPolicy:
             list(self.actor.parameters()) + list(self.critic.parameters()), lr=lr
         )
 
-    def optim_step(self, epsilon, gamma, batch_size, c1, c2, log="", bootstrap=False):
+    def optim_epi(self, epsilon, gamma, batch_size, c1, c2, log="", bootstrap=False):
         if self.memory.curr == 0:
             return 0
+        
+        losses = []
 
-        (
-            prev_s_batch,
-            a_batch,
-            r_batch,
-            post_s_batch,
-            prob_batch,
-            advantage_batch,
-            v_targ,
-            done_batch,
-        ) = self.memory.get_batch(batch_size)
+        for data in self.memory.iterate(batch_size):
+            (
+                prev_s_batch,
+                a_batch,
+                r_batch,
+                post_s_batch,
+                prob_batch,
+                advantage_batch,
+                v_targ,
+                done_batch,
+            ) = data
 
-        probs = self.actor(prev_s_batch)
-        new_prob = mlsh_util.get_disc_prob(probs, a_batch)
-        ratio = torch.exp(new_prob - prob_batch)
-        surr1 = ratio * advantage_batch
-        surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
-        surr_loss = -torch.mean(torch.min(surr1, surr2))
+            probs = self.actor(prev_s_batch)
+            new_prob = mlsh_util.get_disc_prob(probs, a_batch)
+            ratio = torch.exp(new_prob - prob_batch)
+            surr1 = ratio * advantage_batch
+            surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
+            surr_loss = -torch.mean(torch.min(surr1, surr2))
 
-        v_curr = self.critic(prev_s_batch).view(-1)
-        if bootstrap:
-            v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
-        v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
+            v_curr = self.critic(prev_s_batch).view(-1)
+            if bootstrap:
+                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
+            v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
-        ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
+            ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
 
-        self.optimizer.zero_grad()
-        loss = surr_loss + v_loss + ent_loss
-        loss.backward()
+            self.optimizer.zero_grad()
+            loss = surr_loss + v_loss + ent_loss
+            loss.backward()
+            losses.append(loss.item())
 
-        for param in list(self.actor.parameters()) + list(self.critic.parameters()):
-            param.grad.data.clamp_(-1, 1)
-        self.optimizer.step()
+            for param in list(self.actor.parameters()) + list(self.critic.parameters()):
+                param.grad.data.clamp_(-1, 1)
+            self.optimizer.step()
 
-        wandb.log(
-            {
-                log + "surr_loss": surr_loss,
-                log + "v_loss": v_loss / c1,
-                log + "ent_loss": ent_loss / c2,
-                log + "loss": loss,
-                log + "advantage": torch.mean(advantage_batch),
-                log + "ratio": torch.mean(abs(1 - ratio)),
-            }
-        )
+            wandb.log(
+                {
+                    log + "surr_loss": surr_loss,
+                    log + "v_loss": v_loss / c1,
+                    log + "ent_loss": ent_loss / c2,
+                    log + "loss": loss,
+                    log + "advantage": torch.mean(advantage_batch),
+                    log + "ratio": torch.mean(abs(1 - ratio)),
+                }
+            )
 
-        return loss
+        return np.mean(losses)
 
 
 class ContPolicy:
@@ -301,7 +305,7 @@ class ContPolicy:
             list(self.actor.parameters()) + list(self.critic.parameters()), lr=lr
         )
 
-    def optim_step(
+    def optim_epi(
         self,
         optimizer,
         memory,
@@ -315,50 +319,53 @@ class ContPolicy:
     ):
         if self.memory.curr == 0:
             return 0
+        
+        losses = []
+        for data in self.memory.iterate(batch_size):
+            (
+                prev_s_batch,
+                a_batch,
+                r_batch,
+                post_s_batch,
+                prob_batch,
+                advantage_batch,
+                v_targ,
+                done_batch,
+            ) = data
 
-        (
-            prev_s_batch,
-            a_batch,
-            r_batch,
-            post_s_batch,
-            prob_batch,
-            advantage_batch,
-            v_targ,
-            done_batch,
-        ) = self.memory.get_batch(batch_size)
+            y, d = self.actor.policy_out(prev_s_batch)
+            new_prob = mlsh_util.get_cont_prob(y, d, a_batch, self.actor.s).sum(axis=1)
+            ratio = torch.exp(new_prob - prob_batch)
+            surr1 = ratio * advantage_batch
+            surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
+            surr_loss = -torch.mean(torch.min(surr1, surr2))
 
-        y, d = self.actor.policy_out(prev_s_batch)
-        new_prob = mlsh_util.get_cont_prob(y, d, a_batch, self.actor.s).sum(axis=1)
-        ratio = torch.exp(new_prob - prob_batch)
-        surr1 = ratio * advantage_batch
-        surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
-        surr_loss = -torch.mean(torch.min(surr1, surr2))
+            v_curr = self.critic(prev_s_batch).view(-1)
+            if bootstrap:
+                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (1 - done_batch)
+            v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
-        v_curr = self.critic(prev_s_batch).view(-1)
-        if bootstrap:
-            v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (1 - done_batch)
-        v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
+            ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))
 
-        ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))
+            self.optimizer.zero_grad()
+            loss = surr_loss + v_loss + ent_loss
+            loss.backward()
+            losses.append(loss.item())
 
-        self.optimizer.zero_grad()
-        loss = surr_loss + v_loss + ent_loss
-        loss.backward()
+            for param in list(self.actor.parameters()) + list(self.critic.parameters()):
+                param.grad.data.clamp_(-1, 1)
+            self.optimizer.step()
 
-        for param in list(self.actor.parameters()) + list(self.critic.parameters()):
-            param.grad.data.clamp_(-1, 1)
-        self.optimizer.step()
+            if log:
+                wandb.log(
+                    {
+                        "surr_loss": surr_loss,
+                        "v_loss": v_loss / c1,
+                        "ent_loss": ent_loss / c2,
+                        "loss": loss,
+                        "advantage": torch.mean(advantage_batch),
+                        "ratio": torch.mean(abs(1 - ratio)),
+                    }
+                )
 
-        if log:
-            wandb.log(
-                {
-                    "surr_loss": surr_loss,
-                    "v_loss": v_loss / c1,
-                    "ent_loss": ent_loss / c2,
-                    "loss": loss,
-                    "advantage": torch.mean(advantage_batch),
-                    "ratio": torch.mean(abs(1 - ratio)),
-                }
-            )
-
-        return loss
+            return np.mean(losses)

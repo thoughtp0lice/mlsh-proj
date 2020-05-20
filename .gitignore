@@ -6,3 +6,4 @@ gym
 wandb
 mlsh_videos
 .vscode
+ppo_videos

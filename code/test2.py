@@ -69,7 +69,7 @@ if __name__ == "__main__":
     # number of episodes
     iterations = 10000
     # number of optimization epochs
-    K = 500
+    K = 10
     # Horizon
     T = 50
     # batch size
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         reward = rollout(N, env, T, p, gamma, lam)
         wandb.log({"reward": reward})
         for i in range(K):
-            loss = p.optim_step(
+            loss = p.optim_epi(
                 epsilon, gamma, batch_size, c1, c2, bootstrap=True
             )
         if iter % display == 0 and iter != 0:
