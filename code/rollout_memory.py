@@ -6,6 +6,7 @@ import numpy as np
 class RolloutMemory:
     def __init__(self, capacity, state_size, action_size):
         self.curr = 0
+        self.iter_curr = 0
         self.advantage_memory = torch.zeros(capacity)
         self.prob_memory = torch.zeros(capacity)
         self.prev_state_memory = torch.zeros(capacity, state_size)
@@ -49,3 +50,27 @@ class RolloutMemory:
             self.v_targ[out],
             self.done_memory[out],
         )
+    
+    def iterate(self, size):
+        shuffle = np.random.permutation(curr)
+
+        self.advantage_memory[:curr] = self.advantage_memory[shuffle]
+        self.prob_memory[:curr] = self.prob_memory[shuffle]
+        self.prev_state_memory[:curr] = self.prev_state_memory[shuffle]
+        self.action_memory[:curr] = self.action_memory[shuffle]
+        self.reward_memory[:curr] = self.reward_memory[shuffle]
+        self.post_state_memory[:curr] = self.post_state_memory[shuffle]
+        self.done_memory[:curr] = self.done_memory[shuffle]
+        self.v_targ[:curr] = self.v_targ[shuffle]
+
+        while (self.curr - size) > self.iter_curr:
+            yield (
+            self.prev_state_memory[self.iter_curr:self.iter_curr+size],
+            self.action_memory[self.iter_curr:self.iter_curr+size],
+            self.reward_memory[self.iter_curr:self.iter_curr+size],
+            self.post_state_memory[self.iter_curr:self.iter_curr+size],
+            self.prob_memory[self.iter_curr:self.iter_curr+size],
+            self.advantage_memory[self.iter_curr:self.iter_curr+size],
+            self.v_targ[self.iter_curr:self.iter_curr+size],
+            self.done_memory[self.iter_curr:self.iter_curr+size],
+        )   

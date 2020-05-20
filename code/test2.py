@@ -69,13 +69,13 @@ if __name__ == "__main__":
     # number of episodes
     iterations = 10000
     # number of optimization epochs
-    K = 50
+    K = 500
     # Horizon
     T = 50
     # batch size
     batch_size = 64
     # learning rate
-    lr = 1e-4
+    lr = 3e-5
     # decay
     gamma = 0.99
     # GAE prameters
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     epsilon = 0.2
     # parameters in loss fuction
     c1 = 1
-    c2 = 1
+    c2 = 1e-3
     # display step
     display = 10
 

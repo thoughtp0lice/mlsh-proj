@@ -38,11 +38,12 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=200, type=int)
-    parser.add_argument("-W", default=60, type=int)
+    parser.add_argument("-N", default=100, type=int)
+    parser.add_argument("-W", default=30, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
-    parser.add_argument("-K", default=50, type=int)
+    parser.add_argument("-K", default=15, type=int)
+    parser.add_argument("--K2", default=50, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type=int)
     parser.add_argument("--bs", default=64, type=int)
@@ -69,7 +70,10 @@ if __name__ == "__main__":
     # joint training
     U = args.U
     # number of optimization epochs
+    #warm up
     K = args.K
+    #joint
+    K2 = args.K2
     # Horizon
     T = args.T
     # master policy last for
@@ -129,6 +133,7 @@ if __name__ == "__main__":
         env.env.randomizeCorrect()
         realgoal = env.env.realgoal
         agent.high_init()
+        
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
@@ -138,7 +143,9 @@ if __name__ == "__main__":
             record_env.env.env.realgoal = realgoal
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
-        for _ in range(W):
+        # warm up
+        for w in range(W):
+            print("Warm up", w)
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
                 agent.warmup_optim_step(epsilon, gamma, batch_size, c1, c2)
@@ -151,10 +158,11 @@ if __name__ == "__main__":
             record_env.reset()
             record_env.env.env.realgoal = realgoal
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
-
+        
+        #joint update
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
-            for _ in range(K):
+            for _ in range(K2):
                 agent.joint_optim_step(epsilon, gamma, batch_size, c1, c2, c2_low)
 
         if i % record == 0:
