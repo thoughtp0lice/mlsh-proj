@@ -17,9 +17,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     reward = 0
     for i in range(N):
         # reset env while keep the same task
-        realgoal = env.env.realgoal
         env.reset()
-        env.env.realgoal = realgoal
         reward += agent.high_rollout(env, T, high_len, gamma, lam)
     wandb.log({"reward": reward / N})
 
@@ -131,7 +129,7 @@ if __name__ == "__main__":
         print("Current task num:", i)
         env.reset()
         env.env.randomizeCorrect()
-        realgoal = env.env.realgoal
+        print("Current goal:", env.env.realgoal)
         agent.high_init()
         
         if i % record == 0:
@@ -140,7 +138,6 @@ if __name__ == "__main__":
             )
             agent.forget()
             record_env.reset()
-            record_env.env.env.realgoal = realgoal
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
         # warm up
@@ -156,7 +153,6 @@ if __name__ == "__main__":
             )
             agent.forget()
             record_env.reset()
-            record_env.env.env.realgoal = realgoal
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
         
         #joint update
@@ -168,5 +164,4 @@ if __name__ == "__main__":
         if i % record == 0:
             agent.forget()
             record_env.reset()
-            record_env.env.env.realgoal = realgoal
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
