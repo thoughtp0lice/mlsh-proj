@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", default=100, type=int)
-    parser.add_argument("-W", default=9, type=int)
+    parser.add_argument("-W", default=60, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
     parser.add_argument("-K", default=15, type=int)
@@ -48,17 +48,17 @@ if __name__ == "__main__":
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type=int)
     parser.add_argument("--bs", default=64, type=int)
-    parser.add_argument("--lr", default=1e-4, type=float)
-    parser.add_argument("--high_lr", default=1e-4, type=float)
+    parser.add_argument("--llr", default=3e-5, type=float)
+    parser.add_argument("--hlr", default=1e-4, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
-    parser.add_argument("--c2", default=1e-5, type=float)
-    parser.add_argument("--c2_low", default=1, type=float)
+    parser.add_argument("--c2", default=1e-4, type=float)
+    parser.add_argument("--c2_low", default=0.05, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
-    parser.add_argument("--seed", default=12345, type=int)
+    parser.add_argument("--seed", default=123, type=int)
     parser.add_argument("-c", action="store_true")  # continue training
 
     args = parser.parse_args()
@@ -83,8 +83,8 @@ if __name__ == "__main__":
     # batch size
     batch_size = args.bs
     # learning rate
-    lr = args.lr
-    high_lr = args.high_lr
+    llr = args.llr
+    hlr = args.hlr
     # decay
     gamma = args.gamma
     # GAE prameters
@@ -123,17 +123,18 @@ if __name__ == "__main__":
             "c1": c1,
             "c2": c2,
             "c2_low": c2_low,
-            "lr": lr,
+            "llr": llr,
+            "hlr": hlr,
             "seed": seed,
         },
         name="mlsh-" + time_stamp,
     )
 
-    agent = policy.HierPolicy(6, 5, N * T, 2, lr)
+    agent = policy.HierPolicy(6, 5, N * T, 2, llr, hlr)
     for i in range(num_tasks):
         print("Current task num:", i)
         env.reset()
-        env.env.randomizeCorrect()
+        env.env.realgoal = i % 2
         print("Current goal:", env.env.realgoal)
         wandb.log({"current_task": env.env.realgoal})
         agent.high_init()
@@ -150,7 +151,7 @@ if __name__ == "__main__":
         for w in range(W):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, bootstrap=True)
+                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, bootstrap=False)
 
         if i % record == 0:
             record_env = wrappers.Monitor(
@@ -164,7 +165,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=True)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=False)
 
         if i % record == 0:
             agent.forget()

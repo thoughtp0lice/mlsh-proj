@@ -18,7 +18,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     for i in range(N):
         # reset env while keep the same task
         env.reset()
-        env.env.realgoal = 0
+        env.env.realgoal = 1
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
@@ -26,8 +26,8 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
-    #virtual_display = Display(visible=0, size=(1400, 900))
-    #virtual_display.start()
+    virtual_display = Display(visible=0, size=(1400, 900))
+    virtual_display.start()
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         name="hier-" + time_stamp,
     )
 
-    agent = policy.HierPolicy(6, 5, N * T, 2, lr)
+    agent = policy.HierPolicy(6, 5, N * T, 2, lr, 1e-4)
 
     env.reset()
     env.env.randomizeCorrect()
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, 0.1)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, 5e-2)
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)

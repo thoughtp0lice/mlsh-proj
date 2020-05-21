@@ -14,25 +14,27 @@ class HierPolicy:
         output_size,
         memory_capacity,
         num_low,
-        lr,
+        llr,
+        hlr,
         disc=True,
         action_scale=1.0,
     ):
-        self.high = DiscPolicy(input_size, num_low, memory_capacity, lr)
+        self.high = DiscPolicy(input_size, num_low, memory_capacity, hlr)
         self.low = []
         self.input_size = input_size
         self.num_low = num_low
         self.memory_capacity = memory_capacity
-        self.lr = lr
+        self.llr = llr
+        self.hlr = hlr
         for i in range(num_low):
             if disc:
                 self.low.append(
-                    DiscPolicy(input_size, output_size, memory_capacity, lr)
+                    DiscPolicy(input_size, output_size, memory_capacity, llr)
                 )
             else:
                 self.low.append(
                     ContPolicy(
-                        input_size, output_size, action_scale, memory_capacity, lr
+                        input_size, output_size, action_scale, memory_capacity, llr
                     )
                 )
 
@@ -54,7 +56,7 @@ class HierPolicy:
 
     def high_init(self):
         self.high = DiscPolicy(
-            self.input_size, self.num_low, self.memory_capacity, self.lr
+            self.input_size, self.num_low, self.memory_capacity, self.hlr
         )
 
     def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2, bootstrap = False):
