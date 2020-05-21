@@ -59,19 +59,19 @@ class HierPolicy:
 
     def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2):
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
+            epsilon, gamma, batch_size, c1, c2, log="high_"
         )
 
     def joint_optim_epi(self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15):
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap=True
+            epsilon, gamma, batch_size, c1, c2, log="high_"
         )
         for i, low_p in enumerate(self.low):
             if low_p.memory.curr < num_batch:
                 continue
-            size = int(low_p.memory.curr/num_batch)
+            size = int(low_p.memory.curr / num_batch)
             low_p.optim_epi(
-                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", bootstrap=True
+                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_"
             )
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
@@ -95,6 +95,7 @@ class HierPolicy:
             "dones": [],
             "deltas": torch.tensor([]),
             "v_targ": [],
+            "vpred": torch.tensor([])
         }
 
         curr_steps = 0
@@ -106,14 +107,14 @@ class HierPolicy:
 
         while curr_steps < T:
             prev_state = post_state
-            
+
             action, prob, raw_a = self.high.actor.action(prev_state)
             if np.random.random() < 0.1:
                 state = torch.from_numpy(prev_state).float()
                 action = np.random.choice(self.num_low)
                 prob = self.high.actor(state).view(-1)[action].item()
                 raw_a = action
-            
+
             post_state, r, done, roll_len = self.low_rollout(
                 env,
                 action,
@@ -169,8 +170,8 @@ class HierPolicy:
             )
         low_roll["advantages"] = torch.Tensor(low_roll["advantages"])
 
-        low_roll["v_targ"] = mlsh_util.get_v_targ(low_roll["rewards"], gamma)
-        
+        low_roll["v_targ"] = low_roll["advantages"] + low_roll["vpred"]
+
         curr_t = 0
         for roll_len, high_action in zip(low_roll_lens, actions):
             low_policy = self.low[int(high_action.item())]
@@ -226,16 +227,15 @@ class HierPolicy:
             rollout_len += 1
             if done:
                 break
-        
+
         prev_d = torch.tensor(prev_states[-rollout_len:]).float()
         post_d = torch.tensor(post_states[-rollout_len:]).float()
         rewards_d = torch.tensor(rewards[-rollout_len:]).float()
 
-        deltas = low_policy.critic.delta(
-            prev_d, post_d, rewards_d, gamma
-        ).view(-1)
-
+        deltas = low_policy.critic.delta(prev_d, post_d, rewards_d, gamma).view(-1)
+        vpred = low_policy.critic(prev_d).view(-1)
         low_roll["deltas"] = torch.cat((low_roll["deltas"], deltas), 0)
+        low_roll["vpred"] = torch.cat((low_roll["vpred"], vpred), 0)
 
         return post_state, total_reward, done, rollout_len
 
@@ -252,7 +252,7 @@ class DiscPolicy:
     def optim_epi(self, epsilon, gamma, batch_size, c1, c2, log="", bootstrap=False):
         if self.memory.curr == 0 or batch_size == 0:
             return 0
-        
+
         losses = []
 
         for data in self.memory.iterate(batch_size):
@@ -329,7 +329,7 @@ class ContPolicy:
     ):
         if self.memory.curr == 0 or batch_size == 0:
             return 0
-        
+
         losses = []
         for data in self.memory.iterate(batch_size):
             (
@@ -352,7 +352,9 @@ class ContPolicy:
 
             v_curr = self.critic(prev_s_batch).view(-1)
             if bootstrap:
-                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (1 - done_batch)
+                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (
+                    1 - done_batch
+                )
             v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
             ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))

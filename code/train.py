@@ -31,8 +31,8 @@ def save_files(agent):
 
 if __name__ == "__main__":
     virtual_display = Display(visible=0, size=(1400, 900))
-    virtual_display.start()     
-    
+    virtual_display.start()
+
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
@@ -68,9 +68,9 @@ if __name__ == "__main__":
     # joint training
     U = args.U
     # number of optimization epochs
-    #warm up
+    # warm up
     K = args.K
-    #joint
+    # joint
     K2 = args.K2
     # Horizon
     T = args.T
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         env.env.randomizeCorrect()
         print("Current goal:", env.env.realgoal)
         agent.high_init()
-        
+
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
@@ -154,8 +154,8 @@ if __name__ == "__main__":
             agent.forget()
             record_env.reset()
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
-        
-        #joint update
+
+        # joint update
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):

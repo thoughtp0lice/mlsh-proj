@@ -23,7 +23,16 @@ class RolloutMemory:
         self.__init__(self.capacity, self.state_size, self.action_size)
 
     def put_batch(
-        self, prev_state, action, prob, reward, post_state, advantages, v_targ, done
+        self,
+        prev_state,
+        action,
+        prob,
+        reward,
+        post_state,
+        advantages,
+        v_targ,
+        done,
+        vpred,
     ):
         size = len(prev_state)
         self.prob_memory[self.curr : self.curr + size] = prob
@@ -48,31 +57,31 @@ class RolloutMemory:
             self.prob_memory[out],
             self.advantage_memory[out],
             self.v_targ[out],
-            self.done_memory[out],
+            self.done_memory[out]
         )
-    
+
     def iterate(self, size):
         self.iter_curr = 0
         shuffle = np.random.permutation(self.curr)
 
-        self.advantage_memory[:self.curr] = self.advantage_memory[shuffle]
-        self.prob_memory[:self.curr] = self.prob_memory[shuffle]
-        self.prev_state_memory[:self.curr] = self.prev_state_memory[shuffle]
-        self.action_memory[:self.curr] = self.action_memory[shuffle]
-        self.reward_memory[:self.curr] = self.reward_memory[shuffle]
-        self.post_state_memory[:self.curr] = self.post_state_memory[shuffle]
-        self.done_memory[:self.curr] = self.done_memory[shuffle]
-        self.v_targ[:self.curr] = self.v_targ[shuffle]
+        self.advantage_memory[: self.curr] = self.advantage_memory[shuffle]
+        self.prob_memory[: self.curr] = self.prob_memory[shuffle]
+        self.prev_state_memory[: self.curr] = self.prev_state_memory[shuffle]
+        self.action_memory[: self.curr] = self.action_memory[shuffle]
+        self.reward_memory[: self.curr] = self.reward_memory[shuffle]
+        self.post_state_memory[: self.curr] = self.post_state_memory[shuffle]
+        self.done_memory[: self.curr] = self.done_memory[shuffle]
+        self.v_targ[: self.curr] = self.v_targ[shuffle]
 
         while (self.curr - size) > self.iter_curr:
             yield (
-            self.prev_state_memory[self.iter_curr:self.iter_curr+size],
-            self.action_memory[self.iter_curr:self.iter_curr+size],
-            self.reward_memory[self.iter_curr:self.iter_curr+size],
-            self.post_state_memory[self.iter_curr:self.iter_curr+size],
-            self.prob_memory[self.iter_curr:self.iter_curr+size],
-            self.advantage_memory[self.iter_curr:self.iter_curr+size],
-            self.v_targ[self.iter_curr:self.iter_curr+size],
-            self.done_memory[self.iter_curr:self.iter_curr+size],
+                self.prev_state_memory[self.iter_curr : self.iter_curr + size],
+                self.action_memory[self.iter_curr : self.iter_curr + size],
+                self.reward_memory[self.iter_curr : self.iter_curr + size],
+                self.post_state_memory[self.iter_curr : self.iter_curr + size],
+                self.prob_memory[self.iter_curr : self.iter_curr + size],
+                self.advantage_memory[self.iter_curr : self.iter_curr + size],
+                self.v_targ[self.iter_curr : self.iter_curr + size],
+                self.done_memory[self.iter_curr : self.iter_curr + size]
             )
-            self.iter_curr += size   
+            self.iter_curr += size
