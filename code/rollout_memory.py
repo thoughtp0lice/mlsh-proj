@@ -31,8 +31,7 @@ class RolloutMemory:
         post_state,
         advantages,
         v_targ,
-        done,
-        vpred,
+        done
     ):
         size = len(prev_state)
         self.prob_memory[self.curr : self.curr + size] = prob

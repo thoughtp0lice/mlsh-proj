@@ -35,14 +35,14 @@ if __name__ == "__main__":
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type = int)
     parser.add_argument("--bs", default=64, type=int)
-    parser.add_argument("--lr", default=1e-4, type=float)
+    parser.add_argument("--lr", default=3e-5, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
     parser.add_argument("--c2", default=1e-4, type=float)
     parser.add_argument("--display", default=10, type=int)
-    parser.add_argument("--record", default=100, type=int)
+    parser.add_argument("--record", default=10, type=int)
     parser.add_argument("--seed", default=12345, type=int)
     parser.add_argument("-c", action="store_true") # continue training
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, 2)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, 0.1)
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)

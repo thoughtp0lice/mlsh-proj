@@ -57,21 +57,21 @@ class HierPolicy:
             self.input_size, self.num_low, self.memory_capacity, self.lr
         )
 
-    def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2):
+    def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2, bootstrap = False):
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_"
+            epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap = bootstrap
         )
 
-    def joint_optim_epi(self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15):
+    def joint_optim_epi(self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15, bootstrap = False):
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_"
+            epsilon, gamma, batch_size, c1, c2, log="high_", bootstrap= bootstrap
         )
         for i, low_p in enumerate(self.low):
             if low_p.memory.curr < num_batch:
                 continue
             size = int(low_p.memory.curr / num_batch)
             low_p.optim_epi(
-                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_"
+                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", bootstrap = bootstrap
             )
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
@@ -170,7 +170,7 @@ class HierPolicy:
             )
         low_roll["advantages"] = torch.Tensor(low_roll["advantages"])
 
-        low_roll["v_targ"] = low_roll["advantages"] + low_roll["vpred"]
+        low_roll["v_targ"] = (low_roll["advantages"] + low_roll["vpred"]).detach()
 
         curr_t = 0
         for roll_len, high_action in zip(low_roll_lens, actions):
@@ -188,7 +188,7 @@ class HierPolicy:
                 low_roll["dones"][roll_range],
             )
 
-        return total_reward
+        return total_reward, np.sum(list(actions))
 
     def low_rollout(
         self, env, action, high_len, gamma, lam, low_roll, render=False, record=False
@@ -277,6 +277,7 @@ class DiscPolicy:
             v_curr = self.critic(prev_s_batch).view(-1)
             if bootstrap:
                 v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
+            v_targ = v_targ.detach()
             v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
             ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
@@ -352,9 +353,8 @@ class ContPolicy:
 
             v_curr = self.critic(prev_s_batch).view(-1)
             if bootstrap:
-                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1) * (
-                    1 - done_batch
-                )
+                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
+            vtarg = v_targ.detach()
             v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
             ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))

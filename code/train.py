@@ -15,11 +15,14 @@ import mlsh_util
 def rollout(env, agent, N, T, high_len, gamma, lam):
     agent.forget()
     reward = 0
+    action = 0
     for i in range(N):
         # reset env while keep the same task
         env.reset()
-        reward += agent.high_rollout(env, T, high_len, gamma, lam)
-    wandb.log({"reward": reward / N})
+        r, a = agent.high_rollout(env, T, high_len, gamma, lam)
+        reward += r
+        action += a
+    wandb.log({"reward": reward / N, "action": action / N})
 
 
 def save_files(agent):
@@ -37,7 +40,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", default=100, type=int)
-    parser.add_argument("-W", default=60, type=int)
+    parser.add_argument("-W", default=9, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
     parser.add_argument("-K", default=15, type=int)
@@ -46,12 +49,13 @@ if __name__ == "__main__":
     parser.add_argument("--high_len", default=10, type=int)
     parser.add_argument("--bs", default=64, type=int)
     parser.add_argument("--lr", default=1e-4, type=float)
+    parser.add_argument("--high_lr", default=1e-4, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
-    parser.add_argument("--c2", default=1e-3, type=float)
-    parser.add_argument("--c2_low", default=1, type=float)
+    parser.add_argument("--c2", default=1e-5, type=float)
+    parser.add_argument("--c2_low", default=2, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=12345, type=int)
@@ -80,6 +84,7 @@ if __name__ == "__main__":
     batch_size = args.bs
     # learning rate
     lr = args.lr
+    high_lr = args.high_lr
     # decay
     gamma = args.gamma
     # GAE prameters
@@ -145,7 +150,7 @@ if __name__ == "__main__":
             print("Warm up", w)
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2)
+                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, bootstrap=True)
 
         if i % record == 0:
             record_env = wrappers.Monitor(
@@ -159,7 +164,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=True)
 
         if i % record == 0:
             agent.forget()
