@@ -135,6 +135,7 @@ if __name__ == "__main__":
         env.reset()
         env.env.randomizeCorrect()
         print("Current goal:", env.env.realgoal)
+        wandb.log({"current_task": env.env.realgoal})
         agent.high_init()
 
         if i % record == 0:
@@ -147,7 +148,6 @@ if __name__ == "__main__":
 
         # warm up
         for w in range(W):
-            print("Warm up", w)
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
                 agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, bootstrap=True)
