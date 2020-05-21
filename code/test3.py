@@ -14,16 +14,20 @@ import policy
 def rollout(env, agent, N, T, high_len, gamma, lam):
     agent.forget()
     reward = 0
+    action = 0
     for i in range(N):
-        realgoal = 0
+        # reset env while keep the same task
         env.reset()
         env.env.realgoal = 0
-        reward += agent.high_rollout(env, T, high_len, gamma, lam)
+        r, a = agent.high_rollout(env, T, high_len, gamma, lam)
+        reward += r
+        action += a
+    wandb.log({"reward": reward / N, "action": action / N})
     wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
-    virtual_display = Display(visible=0, size=(1400, 900))
-    virtual_display.start()
+    #virtual_display = Display(visible=0, size=(1400, 900))
+    #virtual_display.start()
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()

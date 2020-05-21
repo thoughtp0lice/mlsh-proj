@@ -143,13 +143,14 @@ class HierPolicy:
         rewards = torch.Tensor(rewards)
         post_states = torch.Tensor(post_states)
         dones = torch.Tensor(dones)
+        vpred = self.high.critic(prev_states).view(-1).detach()
 
         deltas = self.high.critic.delta(prev_states, post_states, rewards, gamma)
         for t in range(len(deltas)):
             advantages.append(mlsh_util.advantage(t, deltas, gamma, lam))
         advantages = torch.Tensor(advantages)
 
-        v_targ = mlsh_util.get_v_targ(rewards, gamma)
+        v_targ = advantages + vpred
 
         self.high.memory.put_batch(
             prev_states, actions, probs, rewards, post_states, advantages, v_targ, dones

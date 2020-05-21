@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
     parser.add_argument("--c2", default=1e-5, type=float)
-    parser.add_argument("--c2_low", default=2, type=float)
+    parser.add_argument("--c2_low", default=1, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=12345, type=int)
