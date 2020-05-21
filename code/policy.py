@@ -111,7 +111,7 @@ class HierPolicy:
             if np.random.random() < 0.1:
                 state = torch.from_numpy(prev_state).float()
                 action = np.random.choice(self.num_low)
-                prob = self.high.actor(state)[action]
+                prob = self.high.actor(state).view(-1)[action].item()
                 raw_a = action
             
             post_state, r, done, roll_len = self.low_rollout(
