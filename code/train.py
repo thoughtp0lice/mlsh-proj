@@ -22,7 +22,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
-    wandb.log({"reward": reward / N, "action": action / N})
+    wandb.log({"reward": reward / N, "action": action / N, "current_task": env.env.realgoal})
 
 
 def save_files(agent):
@@ -54,8 +54,8 @@ if __name__ == "__main__":
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
-    parser.add_argument("--c2", default=1e-4, type=float)
-    parser.add_argument("--c2_low", default=0.05, type=float)
+    parser.add_argument("--c2", default=1e-5, type=float)
+    parser.add_argument("--c2_low", default=1e-5, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
     parser.add_argument("--seed", default=123, type=int)
@@ -134,9 +134,8 @@ if __name__ == "__main__":
     for i in range(num_tasks):
         print("Current task num:", i)
         env.reset()
-        env.env.realgoal = i % 2
+        env.env.randomizeCorrect()
         print("Current goal:", env.env.realgoal)
-        wandb.log({"current_task": env.env.realgoal})
         agent.high_init()
 
         if i % record == 0:
