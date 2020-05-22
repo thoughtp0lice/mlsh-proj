@@ -147,7 +147,7 @@ class HierPolicy:
         dones = torch.Tensor(dones)
         vpred = self.high.critic(prev_states).view(-1).detach()
 
-        deltas = self.high.critic.delta(prev_states, post_states, rewards, gamma)
+        deltas = self.high.critic.delta(prev_states, post_states, rewards, dones, gamma)
         for t in range(len(deltas)):
             advantages.append(mlsh_util.advantage(t, deltas, gamma, lam))
         advantages = torch.Tensor(advantages)
@@ -234,8 +234,9 @@ class HierPolicy:
         prev_d = torch.tensor(prev_states[-rollout_len:]).float()
         post_d = torch.tensor(post_states[-rollout_len:]).float()
         rewards_d = torch.tensor(rewards[-rollout_len:]).float()
+        dones_d = torch.tensor(dones[-rollout_len:]).float()
 
-        deltas = low_policy.critic.delta(prev_d, post_d, rewards_d, gamma).view(-1)
+        deltas = low_policy.critic.delta(prev_d, post_d, rewards_d, dones_d, gamma).view(-1)
         vpred = low_policy.critic(prev_d).view(-1)
         low_roll["deltas"] = torch.cat((low_roll["deltas"], deltas), 0)
         low_roll["vpred"] = torch.cat((low_roll["vpred"], vpred), 0)

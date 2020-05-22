@@ -68,5 +68,6 @@ class Critic(nn.Module):
         x = self.fc5(x)
         return x
 
-    def delta(self, s1, s2, r, gamma):
-        return r + gamma * self.forward(s2).view(-1) - self.forward(s1).view(-1)
+    def delta(self, s1, s2, r, done, gamma):
+        nonterminal = 1 - done.float()
+        return r + gamma * self.forward(s2).view(-1) * nonterminal - self.forward(s1).view(-1)
