@@ -139,7 +139,7 @@ if __name__ == "__main__":
         wandb.log({"current_task": env.env.realgoal})
         agent.high_init()
 
-        if i % record == 0:
+        if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
             )
@@ -153,7 +153,7 @@ if __name__ == "__main__":
             for _ in range(K):
                 agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, bootstrap=False)
 
-        if i % record == 0:
+        if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
             )
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             for _ in range(K2):
                 agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=False)
 
-        if i % record == 0:
+        if i % record == 0 and i != 0:
             agent.forget()
             record_env.reset()
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
