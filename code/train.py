@@ -23,13 +23,14 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         reward += r
         action += a
     wandb.log({"reward": reward / N, "action": action / N, "current_task": env.env.realgoal})
+    return reward
 
-
-def save_files(agent):
-    agent.save()
-    wandb.save("../policy")
+def save_files():
     wandb.save("train.py")
     wandb.save("rollout_memory.py")
+    wandb.save("cont_net.py")
+    wandb.save("disc_net.py")
+    wandb.save("mlsh_util.py")
 
 
 if __name__ == "__main__":
@@ -130,6 +131,8 @@ if __name__ == "__main__":
         name="mlsh-" + time_stamp,
     )
 
+    save_files()
+
     agent = policy.HierPolicy(6, 5, N * T, 2, llr, hlr)
     for i in range(num_tasks):
         print("Current task num:", i)
@@ -161,10 +164,18 @@ if __name__ == "__main__":
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
         # joint update
+        trained_reward = 0
         for _ in range(U):
-            rollout(env, agent, N, T, high_len, gamma, lam)
+            trained_reward = rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):
                 agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=False)
+        
+        wandb.log({"trained_reward": trained_reward})
+        if env.env.realgoal == 0:
+            wandb.log({"0_trained_reward": trained_reward})
+        else:
+            wandb.log({"1_trained_reward": trained_reward})
+        print("Trained reward:", trained_reward)
 
         if i % record == 0 and i != 0:
             agent.forget()
