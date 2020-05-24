@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
         if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
-                env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
+                env, "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal)
             )
             agent.forget()
             record_env.reset()
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
         if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
-                env, "../mlsh_videos/run-%s/task-%d" % (time_stamp, i)
+                env, "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal)
             )
             agent.forget()
             record_env.reset()
