@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type = int)
     parser.add_argument("--bs", default=64, type=int)
-    parser.add_argument("--lr", default=3e-5, type=float)
+    parser.add_argument("--lr", default=3e-4, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         name="hier-" + time_stamp,
     )
 
-    agent = policy.HierPolicy(6, 5, N * T, 2, lr, 1e-4)
+    agent = policy.HierPolicy(6, 5, N * T, 2, 3e-4, 1e-2)
 
     env.reset()
     env.env.randomizeCorrect()

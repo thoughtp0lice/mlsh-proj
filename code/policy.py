@@ -271,6 +271,7 @@ class DiscPolicy:
                 done_batch,
             ) = data
 
+            advantage_batch = (advantage_batch-torch.mean(advantage_batch))/max(torch.std(advantage_batch), 0.000001)
             probs = self.actor(prev_s_batch)
             new_prob = mlsh_util.get_disc_prob(probs, a_batch)
             ratio = torch.exp(new_prob - prob_batch)
@@ -348,6 +349,7 @@ class ContPolicy:
                 done_batch,
             ) = data
 
+            advantage_batch = (advantage_batch-torch.mean(advantage_batch))/max(torch.std(advantage_batch), 0.000001)
             y, d = self.actor.policy_out(prev_s_batch)
             new_prob = mlsh_util.get_cont_prob(y, d, a_batch, self.actor.s).sum(axis=1)
             ratio = torch.exp(new_prob - prob_batch)
