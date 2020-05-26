@@ -124,7 +124,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, 1e-5)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, 0, 0)
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)

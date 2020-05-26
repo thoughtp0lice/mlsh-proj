@@ -23,7 +23,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         reward += r
         action += a
     wandb.log({"reward": reward / N, "action": action / N, "current_task": env.env.realgoal})
-    return reward
+    return reward / N
 
 def save_files():
     wandb.save("train.py")
@@ -40,8 +40,8 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=100, type=int)
-    parser.add_argument("-W", default=60, type=int)
+    parser.add_argument("-N", default=40, type=int)
+    parser.add_argument("-W", default=9, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
     parser.add_argument("-K", default=10, type=int)
@@ -55,11 +55,11 @@ if __name__ == "__main__":
     parser.add_argument("--lam", default=0.95, type=float)
     parser.add_argument("--epsilon", default=0.2, type=float)
     parser.add_argument("--c1", default=0.5, type=float)
-    parser.add_argument("--c2", default=1e-5, type=float)
-    parser.add_argument("--c2_low", default=1e-5, type=float)
+    parser.add_argument("--c2", default=0, type=float)
+    parser.add_argument("--c2_low", default=0, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
-    parser.add_argument("--seed", default=123, type=int)
+    parser.add_argument("--seed", default=12345, type=int)
     parser.add_argument("-c", action="store_true")  # continue training
 
     args = parser.parse_args()

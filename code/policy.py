@@ -277,18 +277,18 @@ class DiscPolicy:
             ratio = torch.exp(new_prob - prob_batch)
             surr1 = ratio * advantage_batch
             surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
-            surr_loss = -torch.mean(torch.min(surr1, surr2))
+            surr_loss = torch.mean(torch.min(surr1, surr2))
 
             v_curr = self.critic(prev_s_batch).view(-1)
             if bootstrap:
                 v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
             v_targ = v_targ.detach()
-            v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
+            v_loss = torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
-            ent_loss = -c2 * torch.mean(mlsh_util.entropy_disc(probs))
+            ent_loss = torch.mean(mlsh_util.entropy_disc(probs))
 
             self.optimizer.zero_grad()
-            loss = surr_loss + v_loss + ent_loss
+            loss = - surr_loss + c1 * v_loss - c2 * ent_loss
             loss.backward()
             losses.append(loss.item())
 
@@ -299,8 +299,8 @@ class DiscPolicy:
             wandb.log(
                 {
                     log + "surr_loss": surr_loss,
-                    log + "v_loss": v_loss / c1,
-                    log + "ent_loss": ent_loss / c2,
+                    log + "v_loss": v_loss,
+                    log + "ent_loss": ent_loss,
                     log + "loss": loss,
                     log + "advantage": torch.mean(advantage_batch),
                     log + "ratio": torch.mean(abs(1 - ratio)),
@@ -355,18 +355,18 @@ class ContPolicy:
             ratio = torch.exp(new_prob - prob_batch)
             surr1 = ratio * advantage_batch
             surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
-            surr_loss = -torch.mean(torch.min(surr1, surr2))
+            surr_loss = torch.mean(torch.min(surr1, surr2))
 
             v_curr = self.critic(prev_s_batch).view(-1)
             if bootstrap:
                 v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
             vtarg = v_targ.detach()
-            v_loss = c1 * torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
+            v_loss = torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
 
-            ent_loss = -c2 * torch.mean(mlsh_util.entropy_cont(y, d))
+            ent_loss = torch.mean(mlsh_util.entropy_cont(y, d))
 
             self.optimizer.zero_grad()
-            loss = surr_loss + v_loss + ent_loss
+            loss = - surr_loss + c1 * v_loss - c2 * ent_loss
             loss.backward()
             losses.append(loss.item())
 
@@ -378,8 +378,8 @@ class ContPolicy:
                 wandb.log(
                     {
                         "surr_loss": surr_loss,
-                        "v_loss": v_loss / c1,
-                        "ent_loss": ent_loss / c2,
+                        "v_loss": v_loss,
+                        "ent_loss": ent_loss,
                         "loss": loss,
                         "advantage": torch.mean(advantage_batch),
                         "ratio": torch.mean(abs(1 - ratio)),
