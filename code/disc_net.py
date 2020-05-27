@@ -12,8 +12,11 @@ class Actor(nn.Module):
         self.fc1 = nn.Linear(input_size, 64)
         self.fc2 = nn.Linear(64, 64)
         self.fc3 = nn.Linear(64, 64)
-        self.fc4 = nn.Linear(64, output_size)
-        self.output_size = output_size
+        if output_size == 2:
+            self.output_size = 1
+        else:
+            self.output_size = output_size
+        self.fc4 = nn.Linear(64, self.output_size)
 
         nn.init.orthogonal_(self.fc1.weight)
         nn.init.orthogonal_(self.fc2.weight)
@@ -26,7 +29,11 @@ class Actor(nn.Module):
         x = torch.relu(self.fc3(x))
         x = self.fc4(x)
         x = x.view(-1, self.output_size)
-        x = torch.softmax(x, dim=1)
+        if self.output_size == 1:
+            x = torch.sigmoid(x)
+            x = torch.cat([x, 1 - x], dim=1)
+        else:
+            x = torch.softmax(x, dim=1)
         return x
 
     # select a action

@@ -1,6 +1,7 @@
 import time
 import argparse
 import random
+import atexit
 import test_envs
 import gym
 from gym import wrappers
@@ -22,7 +23,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
-    wandb.log({"reward": reward / N, "action": action / N, "current_task": env.env.realgoal})
+    wandb.log({"reward": reward / N, "action": (action * high_len) / (T * N), "current_task": env.env.realgoal})
     return reward / N
 
 def save_files():
@@ -31,6 +32,10 @@ def save_files():
     wandb.save("cont_net.py")
     wandb.save("disc_net.py")
     wandb.save("mlsh_util.py")
+    wandb.save("policy.py")
+
+def save_video(time_stamp):
+    wandb.save("../mlsh_videos/run-%s" % (time_stamp))
 
 
 if __name__ == "__main__":
@@ -40,7 +45,7 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=40, type=int)
+    parser.add_argument("-N", default=200, type=int)
     parser.add_argument("-W", default=9, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
@@ -59,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument("--c2_low", default=0, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=1, type=int)
-    parser.add_argument("--seed", default=12345, type=int)
+    parser.add_argument("--seed", default=626, type=int)
     parser.add_argument("-c", action="store_true")  # continue training
 
     args = parser.parse_args()
@@ -132,12 +137,14 @@ if __name__ == "__main__":
     )
 
     save_files()
+    atexit.register(save_video, time_stamp)
 
     agent = policy.HierPolicy(6, 5, N * T, 2, llr, hlr)
     for i in range(num_tasks):
         print("Current task num:", i)
         env.reset()
         env.env.randomizeCorrect()
+        #env.env.realgoal = i%2
         print("Current goal:", env.env.realgoal)
         agent.high_init()
 
@@ -163,19 +170,19 @@ if __name__ == "__main__":
             record_env.reset()
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
-        # joint update
-        trained_reward = 0
-        for _ in range(U):
-            trained_reward = rollout(env, agent, N, T, high_len, gamma, lam)
-            for _ in range(K2):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=False)
-        
+        #log reward
+        trained_reward = rollout(env, agent, N, T, high_len, gamma, lam)
         wandb.log({"trained_reward": trained_reward})
         if env.env.realgoal == 0:
             wandb.log({"0_trained_reward": trained_reward})
         else:
             wandb.log({"1_trained_reward": trained_reward})
         print("Trained reward:", trained_reward)
+        # joint update
+        for _ in range(U):
+            rollout(env, agent, N, T, high_len, gamma, lam)
+            for _ in range(K2):
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=False)
 
         if i % record == 0 and i != 0:
             agent.forget()

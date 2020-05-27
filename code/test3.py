@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument("-W", default=0, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=1000, type=int)
-    parser.add_argument("-K", default=15, type=int)
+    parser.add_argument("-K", default=10, type=int)
     parser.add_argument("-T", default=50, type=int)
     parser.add_argument("--high_len", default=10, type = int)
     parser.add_argument("--bs", default=64, type=int)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument("--c2", default=1e-4, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=10, type=int)
-    parser.add_argument("--seed", default=12345, type=int)
+    parser.add_argument("--seed", default=626, type=int)
     parser.add_argument("-c", action="store_true") # continue training
 
     args = parser.parse_args()
