@@ -1,4 +1,5 @@
 """utility functions"""
+import numpy as np 
 import torch
 from torch.distributions import normal
 from torch.distributions import Categorical
@@ -45,3 +46,24 @@ def advantage(t, deltas, gamma, lam):
         out += deltas[curr_t]
         curr_t -= 1
     return out.item()
+
+class RunningMeanStd():
+    def __init__(self, size, epsilon=1e-2):
+        self.count = epsilon
+        self.mean = np.zeros(size)
+        self.var = np.ones(size)
+    
+    def update(self, x):
+        old_count = self.count
+        self.count += 1
+        
+        old_mean = self.mean
+        self.mean = old_mean + (x - old_mean) / self.count
+        
+        M2 = self.var * old_count + (x - old_mean)(x - self.mean)
+        self.var = M2 / self.count
+    
+    def filter(self, x):
+        self.update(x)
+        return np.clip((x-self.mean)/np.sqrt(self.var), -5.0, 5.0)
+        

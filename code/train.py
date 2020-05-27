@@ -160,7 +160,7 @@ if __name__ == "__main__":
         for w in range(W):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, bootstrap=False)
+                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2)
 
         if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
@@ -182,7 +182,7 @@ if __name__ == "__main__":
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low, bootstrap=False)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low)
 
         if i % record == 0 and i != 0:
             agent.forget()

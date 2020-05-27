@@ -26,8 +26,8 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
-    #virtual_display = Display(visible=0, size=(1400, 900))
-    #virtual_display.start()
+    virtual_display = Display(visible=0, size=(1400, 900))
+    virtual_display.start()
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument("--c2", default=1e-4, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=10, type=int)
-    parser.add_argument("--seed", default=626, type=int)
+    parser.add_argument("--seed", default=324, type=int)
     parser.add_argument("-c", action="store_true") # continue training
 
     args = parser.parse_args()
