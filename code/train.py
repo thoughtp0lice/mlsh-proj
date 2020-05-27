@@ -24,7 +24,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         reward += r
         action += a
     wandb.log({"reward": reward / N, "action": (action * high_len) / (T * N), "current_task": env.env.realgoal})
-    return reward / N
+    return reward / N, (action * high_len) / (T * N)
 
 def save_files():
     wandb.save("train.py")
@@ -171,8 +171,8 @@ if __name__ == "__main__":
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
         #log reward
-        trained_reward = rollout(env, agent, N, T, high_len, gamma, lam)
-        wandb.log({"trained_reward": trained_reward})
+        trained_reward, train_action = rollout(env, agent, N, T, high_len, gamma, lam)
+        wandb.log({"trained_reward": trained_reward, "trained_action": train_action})
         if env.env.realgoal == 0:
             wandb.log({"0_trained_reward": trained_reward})
         else:

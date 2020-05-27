@@ -26,6 +26,7 @@ class HierPolicy:
         self.memory_capacity = memory_capacity
         self.llr = llr
         self.hlr = hlr
+        self.rms = mlsh_util.RunningMeanStd(input_size)
         for i in range(num_low):
             if disc:
                 self.low.append(
@@ -106,10 +107,10 @@ class HierPolicy:
             post_state = env.env.env.obs()
         else:
             post_state = env.env.obs()
+        post_state = self.rms.filter(post_state)
 
         while curr_steps < T:
             prev_state = post_state
-
             action, prob, raw_a = self.high.actor.action(prev_state)
             if np.random.random() < 0.0:
                 state = torch.from_numpy(prev_state).float()
@@ -119,6 +120,7 @@ class HierPolicy:
 
             post_state, r, done, roll_len = self.low_rollout(
                 env,
+                prev_state,
                 action,
                 high_len,
                 gamma,
@@ -195,7 +197,7 @@ class HierPolicy:
         return total_reward, np.sum(list(actions))
 
     def low_rollout(
-        self, env, action, high_len, gamma, lam, low_roll, render=False, record=False
+        self, env, init_state, action, high_len, gamma, lam, low_roll, render=False, record=False
     ):
         low_policy = self.low[action]
 
@@ -211,16 +213,16 @@ class HierPolicy:
         rollout_len = 0
 
         done = False
-        if record:
-            post_state = env.env.env.obs()
-        else:
-            post_state = env.env.obs()
+        post_state = init_state
         for i in range(high_len):
             prev_state = post_state
             action, prob, raw_a = low_policy.actor.action(prev_state)
             if render:
                 env.render()
+            
             post_state, r, done, _ = env.step(action)
+            post_state = self.rms.filter(post_state)
+            
             probs.append(prob)
             prev_states.append(prev_state)
             post_states.append(post_state)

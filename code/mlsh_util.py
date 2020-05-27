@@ -60,7 +60,7 @@ class RunningMeanStd():
         old_mean = self.mean
         self.mean = old_mean + (x - old_mean) / self.count
         
-        M2 = self.var * old_count + (x - old_mean)(x - self.mean)
+        M2 = self.var * old_count + (x - old_mean) * (x - self.mean)
         self.var = M2 / self.count
     
     def filter(self, x):
