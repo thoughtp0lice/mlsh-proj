@@ -15,6 +15,7 @@ class RolloutMemory:
         self.post_state_memory = torch.zeros(capacity, state_size)
         self.done_memory = torch.zeros(capacity)
         self.v_targ = torch.zeros(capacity)
+        self.v_old = torch.zeros(capacity)
         self.capacity = capacity
         self.state_size = state_size
         self.action_size = action_size
@@ -31,6 +32,7 @@ class RolloutMemory:
         post_state,
         advantages,
         v_targ,
+        v_old,
         done
     ):
         size = len(prev_state)
@@ -41,6 +43,7 @@ class RolloutMemory:
         self.reward_memory[self.curr : self.curr + size] = reward
         self.advantage_memory[self.curr : self.curr + size] = advantages
         self.v_targ[self.curr : self.curr + size] = v_targ
+        self.v_old[self.curr : self.curr + size] = v_old
         self.done_memory[self.curr : self.curr + size] = done
         self.curr += size
 
@@ -56,6 +59,7 @@ class RolloutMemory:
             self.prob_memory[out],
             self.advantage_memory[out],
             self.v_targ[out],
+            self.v_old[out],
             self.done_memory[out]
         )
 
@@ -71,6 +75,7 @@ class RolloutMemory:
         self.post_state_memory[: self.curr] = self.post_state_memory[shuffle]
         self.done_memory[: self.curr] = self.done_memory[shuffle]
         self.v_targ[: self.curr] = self.v_targ[shuffle]
+        self.v_old[: self.curr] = self.v_old[shuffle]
 
         while (self.curr - size) > self.iter_curr:
             yield (
@@ -81,6 +86,7 @@ class RolloutMemory:
                 self.prob_memory[self.iter_curr : self.iter_curr + size],
                 self.advantage_memory[self.iter_curr : self.iter_curr + size],
                 self.v_targ[self.iter_curr : self.iter_curr + size],
+                self.v_old[self.iter_curr : self.iter_curr + size],
                 self.done_memory[self.iter_curr : self.iter_curr + size]
             )
             self.iter_curr += size

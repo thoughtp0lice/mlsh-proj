@@ -155,7 +155,7 @@ class HierPolicy:
         v_targ = advantages + vpred
 
         self.high.memory.put_batch(
-            prev_states, actions, probs, rewards, post_states, advantages, v_targ, dones
+            prev_states, actions, probs, rewards, post_states, advantages, v_targ, vpred, dones
         )
 
         low_roll["probs"] = torch.Tensor(low_roll["probs"])
@@ -188,6 +188,7 @@ class HierPolicy:
                 low_roll["post_states"][roll_range],
                 low_roll["advantages"][roll_range],
                 low_roll["v_targ"][roll_range],
+                low_roll["vpred"][roll_range],
                 low_roll["dones"][roll_range],
             )
 
@@ -237,7 +238,7 @@ class HierPolicy:
         dones_d = torch.tensor(dones[-rollout_len:]).float()
 
         deltas = low_policy.critic.delta(prev_d, post_d, rewards_d, dones_d, gamma).view(-1)
-        vpred = low_policy.critic(prev_d).view(-1)
+        vpred = low_policy.critic(prev_d).view(-1).detach()
         low_roll["deltas"] = torch.cat((low_roll["deltas"], deltas), 0)
         low_roll["vpred"] = torch.cat((low_roll["vpred"], vpred), 0)
 
@@ -268,6 +269,7 @@ class DiscPolicy:
                 prob_batch,
                 advantage_batch,
                 v_targ,
+                v_old,
                 done_batch,
             ) = data
 
@@ -280,10 +282,12 @@ class DiscPolicy:
             surr_loss = torch.mean(torch.min(surr1, surr2))
 
             v_curr = self.critic(prev_s_batch).view(-1)
-            if bootstrap:
-                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
-            v_targ = v_targ.detach()
-            v_loss = torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
+            v_targ = v_targ.view(-1).detach()
+            v_old = v_old.view(-1).detach()
+            v_loss1 = torch.pow(v_curr - v_targ, 2)
+            clipped_v = v_old + torch.clamp(v_curr - v_old, -epsilon, epsilon)
+            v_loss2 = torch.pow(clipped_v - v_targ, 2)
+            v_loss = torch.mean(torch.min(v_loss1, v_loss2))
 
             ent_loss = torch.mean(mlsh_util.entropy_disc(probs))
 
@@ -346,6 +350,7 @@ class ContPolicy:
                 prob_batch,
                 advantage_batch,
                 v_targ,
+                v_old,
                 done_batch,
             ) = data
 
@@ -358,10 +363,12 @@ class ContPolicy:
             surr_loss = torch.mean(torch.min(surr1, surr2))
 
             v_curr = self.critic(prev_s_batch).view(-1)
-            if bootstrap:
-                v_targ = r_batch + gamma * self.critic(prev_s_batch).view(-1)
-            vtarg = v_targ.detach()
-            v_loss = torch.mean(torch.pow(v_curr.view(-1) - v_targ.view(-1), 2))
+            v_targ = v_targ.view(-1).detach()
+            v_old = v_old.view(-1).detach()
+            v_loss1 = torch.pow(v_curr - v_targ, 2)
+            clipped_v = v_old + torch.clamp(v_curr - v_old, -epsilon, epsilon)
+            v_loss2 = torch.pow(clipped_v - v_targ, 2)
+            v_loss = torch.mean(torch.min(v_loss1, v_loss2))
 
             ent_loss = torch.mean(mlsh_util.entropy_cont(y, d))
 

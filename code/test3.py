@@ -26,8 +26,8 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
-    virtual_display = Display(visible=0, size=(1400, 900))
-    virtual_display.start()
+    #virtual_display = Display(visible=0, size=(1400, 900))
+    #virtual_display.start()
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
