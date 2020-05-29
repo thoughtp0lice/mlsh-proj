@@ -1,4 +1,5 @@
 import time
+import pickle
 import argparse
 import random
 import atexit
@@ -44,13 +45,19 @@ def save_files():
     wandb.save("policy.py")
 
 
-def save_video(time_stamp):
-    wandb.save("../mlsh_videos/run-%s" % (time_stamp))
+def save_agent(agent):
+    with open("agent.p", "wb") as outfile:
+        pickle.dump(agent, outfile)
+
+
+def load_agent(file_name="agent.p"):
+    with open(file_name, "rb") as infile:
+        return pickle.load(infile)
 
 
 if __name__ == "__main__":
-    virtual_display = Display(visible=0, size=(1400, 900))
-    virtual_display.start()
+    # virtual_display = Display(visible=0, size=(1400, 900))
+    # virtual_display.start()
 
     time_stamp = str(int(time.time()))
 
@@ -147,25 +154,28 @@ if __name__ == "__main__":
     )
 
     save_files()
-    atexit.register(save_video, time_stamp)
-
     agent = policy.HierPolicy(6, 5, 400 * T, 2, llr, hlr)
+    if args.c:
+        agent = load_agent()
+    atexit.register(save_agent, agent)
+
     for i in range(num_tasks):
         print("Current task num:", i)
         env.reset()
         env.env.randomizeCorrect()
-        #env.env.realgoal = i % 2
+        # env.env.realgoal = i % 2
         print("Current goal:", env.env.realgoal)
         agent.high_init()
 
-        if i % record == 0 and i != 0:
-            record_env = wrappers.Monitor(
-                env,
-                "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal),
+        # log video
+        if i % record == 0:
+            video = agent.rollout_render(env, T, high_len)
+            wandb.log(
+                {
+                    "video-%d"
+                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                }
             )
-            agent.forget()
-            record_env.reset()
-            agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
         # warm up
         for w in range(W):
@@ -173,30 +183,39 @@ if __name__ == "__main__":
             for _ in range(K):
                 agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2)
 
-        if i % record == 0 and i != 0:
-            record_env = wrappers.Monitor(
-                env,
-                "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal),
+        # log video
+        if i % record == 0:
+            video = agent.rollout_render(env, T, high_len)
+            wandb.log(
+                {
+                    "video-%d"
+                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                }
             )
-            agent.forget()
-            record_env.reset()
-            agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
         # log reward
-        trained_reward, train_action = rollout(env, agent, 400, T, high_len, gamma, lam, test=True)
+        trained_reward, train_action = rollout(
+            env, agent, 400, T, high_len, gamma, lam, test=True
+        )
         wandb.log({"trained_reward": trained_reward, "trained_action": train_action})
         if env.env.realgoal == 0:
             wandb.log({"0_trained_reward": trained_reward})
         else:
             wandb.log({"1_trained_reward": trained_reward})
         print("Trained reward:", trained_reward)
+
         # joint update
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K2):
                 agent.joint_optim_epi(epsilon, gamma, batch_size, c1, c2, c2_low)
 
-        if i % record == 0 and i != 0:
-            agent.forget()
-            record_env.reset()
-            agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
+        # log video
+        if i % record == 0:
+            video = agent.rollout_render(env, T, high_len)
+            wandb.log(
+                {
+                    "video-%d"
+                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                }
+            )

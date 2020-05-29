@@ -7,3 +7,4 @@ wandb
 mlsh_videos
 .vscode
 ppo_videos
+agent.p

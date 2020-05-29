@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import wandb
+import pickle
 import cont_net
 import disc_net
 import rollout_memory
@@ -84,7 +85,26 @@ class HierPolicy:
                 epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", vclip=vclip
             )
 
-    def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
+    def rollout_render(self, env, T, high_len):
+        video = []
+        obs = env.reset()
+        obs = self.rms.filter(obs)
+        video.append(env.render(mode="rgb_array"))
+        t = 0
+        done = False
+        while t < T and not done:
+            high_action, _, _ = self.high.actor.action(obs)
+            for i in range(high_len):
+                low_action, _, _ = self.low[high_action].actor.action(obs)
+                obs, r, done, _ = env.step(low_action)
+                obs = self.rms.filter(obs)
+                video.append(env.render(mode="rgb_array"))
+                t += 1
+                if done:
+                    break
+        return np.transpose(np.array(video), (0, 3, 1, 2))
+
+    def high_rollout(self, env, T, high_len, gamma, lam):
         total_reward = 0
         advantages = []
         probs = []
@@ -110,10 +130,7 @@ class HierPolicy:
 
         curr_steps = 0
 
-        if record:
-            post_state = env.env.env.obs()
-        else:
-            post_state = env.env.obs()
+        post_state = env.env.obs()
         post_state = self.rms.filter(post_state)
 
         while curr_steps < T:
@@ -126,15 +143,7 @@ class HierPolicy:
                 raw_a = action
 
             post_state, r, done, roll_len = self.low_rollout(
-                env,
-                prev_state,
-                action,
-                high_len,
-                gamma,
-                lam,
-                low_roll,
-                render=render,
-                record=record,
+                env, prev_state, action, high_len, gamma, lam, low_roll,
             )
             probs.append(prob)
             prev_states.append(prev_state)
@@ -211,18 +220,7 @@ class HierPolicy:
 
         return total_reward, np.sum(list(actions))
 
-    def low_rollout(
-        self,
-        env,
-        init_state,
-        action,
-        high_len,
-        gamma,
-        lam,
-        low_roll,
-        render=False,
-        record=False,
-    ):
+    def low_rollout(self, env, init_state, action, high_len, gamma, lam, low_roll):
         low_policy = self.low[action]
 
         total_reward = 0
@@ -241,8 +239,6 @@ class HierPolicy:
         for i in range(high_len):
             prev_state = post_state
             action, prob, raw_a = low_policy.actor.action(prev_state)
-            if render:
-                env.render()
 
             post_state, r, done, _ = env.step(action)
             post_state = self.rms.filter(post_state)
