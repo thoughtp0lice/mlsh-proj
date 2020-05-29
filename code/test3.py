@@ -125,11 +125,12 @@ if __name__ == "__main__":
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
                 agent.joint_optim_epi(epsilon, gamma, batch_size, c1, 0, 0, vclip=True)
+        # log video
         if i % record == 0:
-            record_env = wrappers.Monitor(
-                env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)
+            video = agent.rollout_render(env, T, high_len)
+            wandb.log(
+                {
+                    "video-%d"
+                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                }
             )
-            record_env.reset()
-            record_env.env.env.realgoal = 0
-            agent.forget()
-            agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)

@@ -56,8 +56,8 @@ def load_agent(file_name="agent.p"):
 
 
 if __name__ == "__main__":
-    # virtual_display = Display(visible=0, size=(1400, 900))
-    # virtual_display.start()
+    virtual_display = Display(visible=0, size=(1400, 900))
+    virtual_display.start()
 
     time_stamp = str(int(time.time()))
 
@@ -172,7 +172,7 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, T, high_len)
             wandb.log(
                 {
-                    "video-%d"
+                    "pretrain-video-%d"
                     % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
                 }
             )
@@ -188,7 +188,7 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, T, high_len)
             wandb.log(
                 {
-                    "video-%d"
+                    "after-warmup-video-%d"
                     % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
                 }
             )
@@ -215,7 +215,7 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, T, high_len)
             wandb.log(
                 {
-                    "video-%d"
+                    "after-joint-video-%d"
                     % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
                 }
             )
