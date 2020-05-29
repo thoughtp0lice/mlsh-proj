@@ -22,8 +22,8 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
+    agent.normalize_adv()
     wandb.log({"reward": reward / N, "action": action / N})
-    wandb.log({"reward": reward/N})
 
 if __name__ == "__main__":
     virtual_display = Display(visible=0, size=(1400, 900))
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=200, type=int)
+    parser.add_argument("-N", default=40, type=int)
     parser.add_argument("-W", default=0, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=1000, type=int)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     parser.add_argument("--c2", default=1e-4, type=float)
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=10, type=int)
-    parser.add_argument("--seed", default=324, type=int)
+    parser.add_argument("--seed", default=828, type=int)
     parser.add_argument("-c", action="store_true") # continue training
 
     args = parser.parse_args()
@@ -120,11 +120,11 @@ if __name__ == "__main__":
         for _ in range(W):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2)
+                agent.warmup_optim_epi(epsilon, gamma, batch_size, c1, c2, vclip=True)
         for _ in range(U):
             rollout(env, agent, N, T, high_len, gamma, lam)
             for _ in range(K):
-                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, 0, 0)
+                agent.joint_optim_epi(epsilon, gamma, batch_size, c1, 0, 0, vclip=True)
         if i % record == 0:
             record_env = wrappers.Monitor(
                 env, "../mlsh_videos/test_run-%s/task-%d" % (time_stamp, i)

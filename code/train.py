@@ -13,7 +13,7 @@ import policy
 import mlsh_util
 
 
-def rollout(env, agent, N, T, high_len, gamma, lam):
+def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     agent.forget()
     reward = 0
     action = 0
@@ -23,8 +23,17 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
-    wandb.log({"reward": reward / N, "action": (action * high_len) / (T * N), "current_task": env.env.realgoal})
+    agent.normalize_adv()
+    if not test:
+        wandb.log(
+            {
+                "reward": reward / N,
+                "action": (action * high_len) / (T * N),
+                "current_task": env.env.realgoal,
+            }
+        )
     return reward / N, (action * high_len) / (T * N)
+
 
 def save_files():
     wandb.save("train.py")
@@ -33,6 +42,7 @@ def save_files():
     wandb.save("disc_net.py")
     wandb.save("mlsh_util.py")
     wandb.save("policy.py")
+
 
 def save_video(time_stamp):
     wandb.save("../mlsh_videos/run-%s" % (time_stamp))
@@ -45,8 +55,8 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", default=200, type=int)
-    parser.add_argument("-W", default=9, type=int)
+    parser.add_argument("-N", default=40, type=int)
+    parser.add_argument("-W", default=60, type=int)
     parser.add_argument("-U", default=1, type=int)
     parser.add_argument("--tasks", default=5000, type=int)
     parser.add_argument("-K", default=10, type=int)
@@ -139,18 +149,19 @@ if __name__ == "__main__":
     save_files()
     atexit.register(save_video, time_stamp)
 
-    agent = policy.HierPolicy(6, 5, N * T, 2, llr, hlr)
+    agent = policy.HierPolicy(6, 5, 400 * T, 2, llr, hlr)
     for i in range(num_tasks):
         print("Current task num:", i)
         env.reset()
         env.env.randomizeCorrect()
-        #env.env.realgoal = i%2
+        #env.env.realgoal = i % 2
         print("Current goal:", env.env.realgoal)
         agent.high_init()
 
         if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
-                env, "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal)
+                env,
+                "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal),
             )
             agent.forget()
             record_env.reset()
@@ -164,14 +175,15 @@ if __name__ == "__main__":
 
         if i % record == 0 and i != 0:
             record_env = wrappers.Monitor(
-                env, "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal)
+                env,
+                "../mlsh_videos/run-%s/task-%d-%d" % (time_stamp, i, env.env.realgoal),
             )
             agent.forget()
             record_env.reset()
             agent.high_rollout(record_env, T, high_len, gamma, lam, record=True)
 
-        #log reward
-        trained_reward, train_action = rollout(env, agent, N, T, high_len, gamma, lam)
+        # log reward
+        trained_reward, train_action = rollout(env, agent, 400, T, high_len, gamma, lam, test=True)
         wandb.log({"trained_reward": trained_reward, "trained_action": train_action})
         if env.env.realgoal == 0:
             wandb.log({"0_trained_reward": trained_reward})

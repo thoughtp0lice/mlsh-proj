@@ -91,4 +91,8 @@ class Critic(nn.Module):
 
     def delta(self, s1, s2, r, done, gamma):
         nonterminal = 1 - done.float()
-        return r + gamma * self.forward(s2).view(-1) * nonterminal - self.forward(s1).view(-1)
+        return (
+            r
+            + gamma * self.forward(s2).view(-1) * nonterminal
+            - self.forward(s1).view(-1)
+        )

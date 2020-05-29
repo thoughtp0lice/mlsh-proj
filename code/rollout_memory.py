@@ -33,7 +33,7 @@ class RolloutMemory:
         advantages,
         v_targ,
         v_old,
-        done
+        done,
     ):
         size = len(prev_state)
         self.prob_memory[self.curr : self.curr + size] = prob
@@ -60,7 +60,7 @@ class RolloutMemory:
             self.advantage_memory[out],
             self.v_targ[out],
             self.v_old[out],
-            self.done_memory[out]
+            self.done_memory[out],
         )
 
     def iterate(self, size):
@@ -87,6 +87,12 @@ class RolloutMemory:
                 self.advantage_memory[self.iter_curr : self.iter_curr + size],
                 self.v_targ[self.iter_curr : self.iter_curr + size],
                 self.v_old[self.iter_curr : self.iter_curr + size],
-                self.done_memory[self.iter_curr : self.iter_curr + size]
+                self.done_memory[self.iter_curr : self.iter_curr + size],
             )
             self.iter_curr += size
+
+    def normalize_adv(self):
+        advs = self.advantage_memory[: self.curr]
+        self.advantage_memory[: self.curr] = (advs - advs.mean()) / max(
+            advs.std(), 0.000001
+        )

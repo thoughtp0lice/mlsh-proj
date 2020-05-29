@@ -60,21 +60,28 @@ class HierPolicy:
             self.input_size, self.num_low, self.memory_capacity, self.hlr
         )
 
-    def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2, vclip = False):
+    def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2, vclip=False):
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_", vclip = vclip
+            epsilon, gamma, batch_size, c1, c2, log="high_", vclip=vclip
         )
 
-    def joint_optim_epi(self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15, vclip = False):
+    def normalize_adv(self):
+        self.high.memory.normalize_adv()
+        for low_p in self.low:
+            low_p.memory.normalize_adv()
+
+    def joint_optim_epi(
+        self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15, vclip=False
+    ):
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_", vclip = vclip
+            epsilon, gamma, batch_size, c1, c2, log="high_", vclip=vclip
         )
         for i, low_p in enumerate(self.low):
             if low_p.memory.curr < num_batch:
                 continue
             size = int(low_p.memory.curr / num_batch)
             low_p.optim_epi(
-                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", vclip = vclip
+                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", vclip=vclip
             )
 
     def high_rollout(self, env, T, high_len, gamma, lam, render=False, record=False):
@@ -98,7 +105,7 @@ class HierPolicy:
             "dones": [],
             "deltas": torch.tensor([]),
             "v_targ": [],
-            "vpred": torch.tensor([])
+            "vpred": torch.tensor([]),
         }
 
         curr_steps = 0
@@ -112,7 +119,7 @@ class HierPolicy:
         while curr_steps < T:
             prev_state = post_state
             action, prob, raw_a = self.high.actor.action(prev_state)
-            if np.random.random() < 0.0:
+            if np.random.random() < 0.1:
                 state = torch.from_numpy(prev_state).float()
                 action = np.random.choice(self.num_low)
                 prob = self.high.actor(state).view(-1)[action].item()
@@ -157,7 +164,15 @@ class HierPolicy:
         v_targ = advantages + vpred
 
         self.high.memory.put_batch(
-            prev_states, actions, probs, rewards, post_states, advantages, v_targ, vpred, dones
+            prev_states,
+            actions,
+            probs,
+            rewards,
+            post_states,
+            advantages,
+            v_targ,
+            vpred,
+            dones,
         )
 
         low_roll["probs"] = torch.Tensor(low_roll["probs"])
@@ -197,7 +212,16 @@ class HierPolicy:
         return total_reward, np.sum(list(actions))
 
     def low_rollout(
-        self, env, init_state, action, high_len, gamma, lam, low_roll, render=False, record=False
+        self,
+        env,
+        init_state,
+        action,
+        high_len,
+        gamma,
+        lam,
+        low_roll,
+        render=False,
+        record=False,
     ):
         low_policy = self.low[action]
 
@@ -219,10 +243,10 @@ class HierPolicy:
             action, prob, raw_a = low_policy.actor.action(prev_state)
             if render:
                 env.render()
-            
+
             post_state, r, done, _ = env.step(action)
             post_state = self.rms.filter(post_state)
-            
+
             probs.append(prob)
             prev_states.append(prev_state)
             post_states.append(post_state)
@@ -239,7 +263,9 @@ class HierPolicy:
         rewards_d = torch.tensor(rewards[-rollout_len:]).float()
         dones_d = torch.tensor(dones[-rollout_len:]).float()
 
-        deltas = low_policy.critic.delta(prev_d, post_d, rewards_d, dones_d, gamma).view(-1)
+        deltas = low_policy.critic.delta(
+            prev_d, post_d, rewards_d, dones_d, gamma
+        ).view(-1)
         vpred = low_policy.critic(prev_d).view(-1).detach()
         low_roll["deltas"] = torch.cat((low_roll["deltas"], deltas), 0)
         low_roll["vpred"] = torch.cat((low_roll["vpred"], vpred), 0)
@@ -275,14 +301,13 @@ class DiscPolicy:
                 done_batch,
             ) = data
 
-            advantage_batch = (advantage_batch-torch.mean(advantage_batch))/max(torch.std(advantage_batch), 0.000001)
             probs = self.actor(prev_s_batch)
             new_prob = mlsh_util.get_disc_prob(probs, a_batch)
             ratio = torch.exp(new_prob - prob_batch)
             surr1 = ratio * advantage_batch
             surr2 = torch.clamp(ratio, 1 - epsilon, 1 + epsilon) * advantage_batch
             surr_loss = torch.mean(torch.min(surr1, surr2))
-            
+
             v_curr = self.critic(prev_s_batch).view(-1)
             if vclip:
                 v_targ = v_targ.view(-1).detach()
@@ -298,7 +323,7 @@ class DiscPolicy:
             ent_loss = torch.mean(mlsh_util.entropy_disc(probs))
 
             self.optimizer.zero_grad()
-            loss = - surr_loss + c1 * v_loss - c2 * ent_loss
+            loss = -surr_loss + c1 * v_loss - c2 * ent_loss
             loss.backward()
             losses.append(loss.item())
 
@@ -317,7 +342,7 @@ class DiscPolicy:
                     log + "loss": loss,
                     log + "advantage": torch.mean(advantage_batch),
                     log + "ratio": torch.mean(abs(1 - ratio)),
-                    log + "grad_size": grad_size
+                    log + "grad_size": grad_size,
                 }
             )
 
@@ -364,7 +389,6 @@ class ContPolicy:
                 done_batch,
             ) = data
 
-            advantage_batch = (advantage_batch-torch.mean(advantage_batch))/max(torch.std(advantage_batch), 0.000001)
             y, d = self.actor.policy_out(prev_s_batch)
             new_prob = mlsh_util.get_cont_prob(y, d, a_batch, self.actor.s).sum(axis=1)
             ratio = torch.exp(new_prob - prob_batch)
@@ -386,10 +410,10 @@ class ContPolicy:
             ent_loss = torch.mean(mlsh_util.entropy_cont(y, d))
 
             self.optimizer.zero_grad()
-            loss = - surr_loss + c1 * v_loss - c2 * ent_loss
+            loss = -surr_loss + c1 * v_loss - c2 * ent_loss
             loss.backward()
             losses.append(loss.item())
-            
+
             grad_size = 0
             for param in list(self.actor.parameters()) + list(self.critic.parameters()):
                 grad_size += param.grad.data ** 2
@@ -405,7 +429,7 @@ class ContPolicy:
                     log + "loss": loss,
                     log + "advantage": torch.mean(advantage_batch),
                     log + "ratio": torch.mean(abs(1 - ratio)),
-                    log + "grad_size": grad_size
+                    log + "grad_size": grad_size,
                 }
             )
 
