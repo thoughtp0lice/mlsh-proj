@@ -136,7 +136,7 @@ class HierPolicy:
         while curr_steps < T:
             prev_state = post_state
             action, prob, raw_a = self.high.actor.action(prev_state)
-            if np.random.random() < 0.1:
+            if np.random.random() < 0.0:
                 state = torch.from_numpy(prev_state).float()
                 action = np.random.choice(self.num_low)
                 prob = self.high.actor(state).view(-1)[action].item()
