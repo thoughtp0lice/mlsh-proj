@@ -1,6 +1,4 @@
 __pycache__
-.ipynb_checkpoints
-test*
 venv
 gym
 wandb
@@ -8,3 +6,4 @@ mlsh_videos
 .vscode
 ppo_videos
 agent.p
+*ipynb*
