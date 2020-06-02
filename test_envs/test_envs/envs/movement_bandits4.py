@@ -21,7 +21,7 @@ class MovementBandits4(gym.Env):
     def __init__(self):
         # new action space = [left, right]
         self.action_space = spaces.Discrete(5)
-        self.observation_space = spaces.Box(-10000000, 10000000, shape=(6,))
+        self.observation_space = spaces.Box(-10000000, 10000000, shape=(10,))
 
         self.realgoal = np.random.randint(0,4)
 

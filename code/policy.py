@@ -40,17 +40,6 @@ class HierPolicy:
                     )
                 )
 
-    def save(self):
-        torch.save(self.high.actor.state_dict(), "../policy/high/model_actor_cont.pt")
-        torch.save(self.low.critic.state_dict(), "../policy/high/model_critic_cont.pt")
-        for i, low_p in enumerate(self.low):
-            torch.save(
-                low_p.actor.state_dict(), "../policy/low/model_actor_cont%r.pt" % i
-            )
-            torch.save(
-                low_p.critic.state_dict(), "../policy/low/model_critic_cont%r.pt" % i
-            )
-
     def forget(self):
         self.high.memory.clear()
         for low_p in self.low:

@@ -5,5 +5,5 @@ wandb
 mlsh_videos
 .vscode
 ppo_videos
-agent.p
+agent.pt
 *ipynb*

@@ -25,6 +25,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam):
     agent.normalize_adv()
     wandb.log({"reward": reward / N, "action": action / N})
 
+
 if __name__ == "__main__":
     virtual_display = Display(visible=0, size=(1400, 900))
     virtual_display.start()
@@ -37,7 +38,7 @@ if __name__ == "__main__":
     parser.add_argument("--tasks", default=1000, type=int)
     parser.add_argument("-K", default=10, type=int)
     parser.add_argument("-T", default=50, type=int)
-    parser.add_argument("--high_len", default=10, type = int)
+    parser.add_argument("--high_len", default=10, type=int)
     parser.add_argument("--bs", default=64, type=int)
     parser.add_argument("--lr", default=3e-4, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--display", default=10, type=int)
     parser.add_argument("--record", default=10, type=int)
     parser.add_argument("--seed", default=828, type=int)
-    parser.add_argument("-c", action="store_true") # continue training
+    parser.add_argument("-c", action="store_true")  # continue training
 
     args = parser.parse_args()
 
@@ -81,9 +82,9 @@ if __name__ == "__main__":
     c2 = args.c2
     # display step
     display = args.display
-    #record step
+    # record step
     record = args.record
-    #random seed
+    # random seed
     ran_seed = args.seed
     torch.manual_seed(ran_seed)
     random.seed(ran_seed)
