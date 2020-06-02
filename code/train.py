@@ -127,7 +127,7 @@ if __name__ == "__main__":
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    env = gym.make("MovementBandits-v0")
+    env = gym.make("MovementBandits4-v0")
     env.seed(seed)
 
     wandb.init(
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     )
 
     save_files()
-    agent = policy.HierPolicy(6, 5, 400 * T, 2, llr, hlr)
+    agent = policy.HierPolicy(10, 5, 400 * T, 4, llr, hlr)
     if args.c:
         agent = load_agent()
     atexit.register(save_agent, agent)
