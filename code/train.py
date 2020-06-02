@@ -197,11 +197,7 @@ if __name__ == "__main__":
         trained_reward, train_action = rollout(
             env, agent, 400, T, high_len, gamma, lam, test=True
         )
-        wandb.log({"trained_reward": trained_reward, "trained_action": train_action})
-        if env.env.realgoal == 0:
-            wandb.log({"0_trained_reward": trained_reward})
-        else:
-            wandb.log({"1_trained_reward": trained_reward})
+        wandb.log({"trained_reward": trained_reward, "trained_action": train_action, str(env.env.realgoal)+"_trained_reward":trained_reward})
         print("Trained reward:", trained_reward)
 
         # joint update
