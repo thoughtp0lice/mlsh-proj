@@ -193,7 +193,7 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, args.T, args.high_len)
             wandb.log(
                 {
-                    "pretrain-video-%s"
+                    "warmup-video-%s"
                     % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
                 }
             )
@@ -224,7 +224,7 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, args.T, args.high_len)
             wandb.log(
                 {
-                    "pretrain-video-%s"
+                    "afterjoint-video-%s"
                     % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
                 }
             )
