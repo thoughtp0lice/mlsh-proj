@@ -126,6 +126,11 @@ class HierPolicy:
         return np.transpose(np.array(video), (0, 3, 1, 2))
 
     def high_rollout(self, env, T, high_len, gamma, lam):
+        '''
+        rollout agent but not render agent for T time step on env
+        store all the necessary data in memory
+        return total reward and sum of all high level actions
+        '''
         total_reward = 0
         advantages = []
         probs = []
@@ -136,6 +141,7 @@ class HierPolicy:
         dones = []
         low_roll_lens = []
 
+        # dictionary to store in low rollout data
         low_roll = {
             "advantages": [],
             "probs": [],
@@ -177,7 +183,8 @@ class HierPolicy:
             curr_steps += high_len
             if done:
                 break
-
+        
+        # process and store high data
         probs = torch.Tensor(probs)
         prev_states = torch.Tensor(prev_states)
         actions = torch.Tensor(actions).reshape(-1, self.high.memory.action_size)
@@ -205,6 +212,7 @@ class HierPolicy:
             dones,
         )
 
+        # process low data
         low_roll["probs"] = torch.Tensor(low_roll["probs"])
         low_roll["prev_states"] = torch.Tensor(low_roll["prev_states"])
         low_roll["actions"] = torch.Tensor(low_roll["actions"]).reshape(
@@ -222,6 +230,7 @@ class HierPolicy:
 
         low_roll["v_targ"] = (low_roll["advantages"] + low_roll["vpred"]).detach()
 
+        # break up low data and store in each low memories
         curr_t = 0
         for roll_len, high_action in zip(low_roll_lens, actions):
             low_policy = self.low[int(high_action.item())]
@@ -242,6 +251,12 @@ class HierPolicy:
         return total_reward, np.sum(list(actions))
 
     def low_rollout(self, env, init_state, action, high_len, gamma, lam, low_roll):
+        '''
+        rollout high_len time steps using low policy selected by action
+        store all the data in low_roll
+        first three return value same as the env return
+        last one returns the number of time steps of this rollout
+        '''
         low_policy = self.low[action]
 
         total_reward = 0
@@ -292,6 +307,9 @@ class HierPolicy:
 
 class DiscPolicy:
     def __init__(self, input_size, output_size, memory_capacity, lr):
+        '''
+        implements ppo that gives discrete out put
+        '''
         self.actor = disc_net.Actor(input_size, output_size)
         self.critic = disc_net.Critic(input_size)
         self.memory = rollout_memory.RolloutMemory(memory_capacity, input_size, 1)
@@ -300,6 +318,10 @@ class DiscPolicy:
         )
 
     def optim_epi(self, epsilon, gamma, batch_size, c1, c2, log="", vclip=False):
+        '''
+        optimize epi for an episode that goes through all the data in memory
+        log changes the name of hte log in wandb
+        '''
         if self.memory.curr == 0 or batch_size == 0:
             return 0
 
@@ -367,6 +389,10 @@ class DiscPolicy:
 
 class ContPolicy:
     def __init__(self, input_size, output_size, action_scale, memory_capacity, lr):
+        '''
+        optimize epi for an episode that goes through all the data in memory
+        action is in range (-action_scale, action_scale)
+        '''
         self.actor = cont_net.Actor(input_size, output_size, action_scale)
         self.critic = cont_net.Critic(input_size)
         self.memory = rollout_memory.RolloutMemory(
@@ -377,8 +403,11 @@ class ContPolicy:
         )
 
     def optim_epi(
-        self, epsilon, gamma, batch_size, c1, c2, log=False, vclip=False,
+        self, epsilon, gamma, batch_size, c1, c2, log="", vclip=False,
     ):
+        '''
+        optimize epi for an episode that goes through all the data in memory
+        '''
         if self.memory.curr == 0 or batch_size == 0:
             return 0
 

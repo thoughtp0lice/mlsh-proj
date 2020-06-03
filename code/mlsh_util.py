@@ -13,17 +13,6 @@ def entropy_disc(distribution):
     return Categorical(probs=distribution).entropy()
 
 
-def get_v_targ(r_batch, gamma):
-    out = torch.zeros(len(r_batch))
-    for i in range(len(r_batch)):
-        curr = len(r_batch) - i - 1
-        if i == 0:
-            out[curr] = r_batch[curr]
-        else:
-            out[curr] = r_batch[curr] + gamma * out[curr + 1]
-    return out
-
-
 def get_disc_prob(prob, a_batch):
     return prob.gather(1, a_batch.long()).view(-1)
 
@@ -50,11 +39,17 @@ def advantage(t, deltas, gamma, lam):
 
 class RunningMeanStd:
     def __init__(self, size, epsilon=1e-2):
+        '''
+        keep a running mean and std
+        '''
         self.count = epsilon
         self.mean = np.zeros(size)
         self.var = np.ones(size)
 
     def update(self, x):
+        '''
+        update running mean and std given a new data point
+        '''
         old_count = self.count
         self.count += 1
 
@@ -65,5 +60,9 @@ class RunningMeanStd:
         self.var = M2 / self.count
 
     def filter(self, x):
+        '''
+        update running mean and std
+        return normalized data
+        '''
         self.update(x)
         return np.clip((x - self.mean) / np.sqrt(self.var), -5.0, 5.0)

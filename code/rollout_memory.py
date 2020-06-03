@@ -48,6 +48,9 @@ class RolloutMemory:
         self.curr += size
 
     def get_batch(self, size):
+        '''
+        get a random batch of data of size [size]
+        '''
         if size > self.curr:
             size = self.curr
         out = np.random.choice(self.curr, size, replace=False)
@@ -64,6 +67,9 @@ class RolloutMemory:
         )
 
     def iterate(self, size):
+        '''
+        generater through the dataset with a batch of size [size] in each return
+        '''
         self.iter_curr = 0
         shuffle = np.random.permutation(self.curr)
 
@@ -92,6 +98,9 @@ class RolloutMemory:
             self.iter_curr += size
 
     def normalize_adv(self):
+        '''
+        call to normalize the advantages stroed in the data set
+        '''
         advs = self.advantage_memory[: self.curr]
         self.advantage_memory[: self.curr] = (advs - advs.mean()) / max(
             advs.std(), 0.000001

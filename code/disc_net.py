@@ -36,9 +36,10 @@ class Actor(nn.Module):
             x = torch.softmax(x, dim=1)
         return x
 
-    # select a action
-    # return action and probability
     def action(self, state):
+        '''
+        select a action return action and probability and action as raw_a
+        '''
         if not isinstance(state, torch.Tensor):
             state = torch.from_numpy(state).float()
         probs = self.forward(state).view(-1)

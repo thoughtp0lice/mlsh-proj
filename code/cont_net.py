@@ -46,9 +46,11 @@ class Actor(nn.Module):
         std = torch.clamp(torch.exp(self.std_fc4(std)), 1e-9, 1e10)
         return mean, std
 
-    # select a action
-    # return action and log probability
     def action(self, state):
+        '''
+        select a action return clipped action and log probability
+        and raw action output by the network
+        '''
         if not isinstance(state, torch.Tensor):
             state = torch.from_numpy(state).float()
         # mean and standard deviation of distribution
@@ -59,8 +61,10 @@ class Actor(nn.Module):
         log_p_a = mlsh_util.get_cont_prob(mean, std, raw_a, self.s).sum()
         return a.tolist(), log_p_a.detach(), raw_a.tolist()
 
-    # tensor for all the mean and tensor for all the standard deviation
     def policy_out(self, state):
+        '''
+        tensor for all the mean and tensor for all the standard deviation
+        '''
         mean, std = self.forward(state)
         return mean, std
 
