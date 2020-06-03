@@ -9,6 +9,7 @@ import mlsh_util
 
 
 class HierPolicy:
+
     def __init__(
         self,
         input_size,
@@ -20,6 +21,15 @@ class HierPolicy:
         disc=True,
         action_scale=1.0,
     ):
+        '''
+        set up a hierchical policy 
+        use input_size, output_size to set the size of output
+        use num_low to set num of low level policy
+        llr set the learning rate of lowlevel policies
+        hlr set the learning rate of highlevel policies
+        set disc to false to enable continous control and true for discrete control
+        the range of action in lowlevel policy is (-action_scale, action_scale)
+        '''
         self.high = DiscPolicy(input_size, num_low, memory_capacity, hlr)
         self.low = []
         self.input_size = input_size
@@ -41,21 +51,32 @@ class HierPolicy:
                 )
 
     def forget(self):
+        '''
+        use to clear all the replay buffer
+        '''
         self.high.memory.clear()
         for low_p in self.low:
             low_p.memory.clear()
 
     def high_init(self):
+        '''
+        use to clear high level policy and initialize again
+        '''
         self.high = DiscPolicy(
             self.input_size, self.num_low, self.memory_capacity, self.hlr
         )
 
     def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2, vclip=False):
+        '''
+        update only high level policy for one epoch
+        set vclip to True to clip v value while optimizing
+        '''
         self.high.optim_epi(
             epsilon, gamma, batch_size, c1, c2, log="high_", vclip=vclip
         )
 
     def normalize_adv(self):
+        '''normalize stored advantage in all the replay buffers'''
         self.high.memory.normalize_adv()
         for low_p in self.low:
             low_p.memory.normalize_adv()
@@ -63,6 +84,11 @@ class HierPolicy:
     def joint_optim_epi(
         self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15, vclip=False
     ):
+        '''
+        update all the policies for one epoch
+        num_batch set the number of batchs to seperate the memories into
+        set vclip to True to clip v value while optimizing
+        '''
         self.high.optim_epi(
             epsilon, gamma, batch_size, c1, c2, log="high_", vclip=vclip
         )
@@ -75,6 +101,12 @@ class HierPolicy:
             )
 
     def rollout_render(self, env, T, high_len):
+        '''
+        rollot and render agent on env for T time steps
+        return a np series of rendered images
+        dimensions are time, channels, width, height
+        this does not store information in memory
+        '''
         video = []
         obs = env.reset()
         obs = self.rms.filter(obs)
