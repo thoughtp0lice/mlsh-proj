@@ -5,10 +5,14 @@ import mlsh_util
 import policy
 import torch
 
-
-agent = torch.load("./agent.pt")
-env = gym.make("AntBandits-v1")
-print(env.observation_space.shape[0])
-total_reward = 0
-print(agent.rollout_render(env, 50, 10))
+env = gym.make("InvertedPendulum-v1")
+env.reset()
+for i in range(1):
+    env.reset()
+    for _ in range(5000):
+        env.render()
+        _, _, done, _ = env.step(env.action_space.sample())  # take a random action
+        if done:
+            break
+        
 env.close()

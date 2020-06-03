@@ -19,7 +19,6 @@ def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     reward = 0
     action = 0
     for i in range(N):
-        env.reset()
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a

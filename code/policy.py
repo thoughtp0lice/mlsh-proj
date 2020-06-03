@@ -119,7 +119,7 @@ class HierPolicy:
 
         curr_steps = 0
 
-        post_state = env.env.obs()
+        post_state = env.reset()
         post_state = self.rms.filter(post_state)
 
         while curr_steps < T:
@@ -333,7 +333,6 @@ class DiscPolicy:
 
         return np.mean(losses)
 
-
 class ContPolicy:
     def __init__(self, input_size, output_size, action_scale, memory_capacity, lr):
         self.actor = cont_net.Actor(input_size, output_size, action_scale)
@@ -346,16 +345,7 @@ class ContPolicy:
         )
 
     def optim_epi(
-        self,
-        optimizer,
-        memory,
-        epsilon,
-        gamma,
-        batch_size,
-        c1,
-        c2,
-        log=False,
-        vclip=False,
+        self, epsilon, gamma, batch_size, c1, c2, log=False, vclip=False,
     ):
         if self.memory.curr == 0 or batch_size == 0:
             return 0
@@ -401,7 +391,7 @@ class ContPolicy:
 
             grad_size = 0
             for param in list(self.actor.parameters()) + list(self.critic.parameters()):
-                grad_size += param.grad.data ** 2
+                grad_size += torch.sum(param.grad.data ** 2).item()
                 param.grad.data.clamp_(-1, 1)
             self.optimizer.step()
             grad_size = grad_size ** 0.5
