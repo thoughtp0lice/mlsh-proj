@@ -24,7 +24,7 @@ python train.py -W 60 -U 1 --env MovementBandit-v1
 ```
 Change `-W` to adjust warm-up period length and `-U` to adjust joint update period. Use `--env` to specify the environment to run experiment on. More options and usages can be find `train.py` 
 
-# Results
+## Results
 - MovementBandit
   - Learning curve
     ![curve_on_MB.png](./assets/curve_on_MB.png)
