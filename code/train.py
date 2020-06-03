@@ -19,7 +19,6 @@ def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     reward = 0
     action = 0
     for i in range(N):
-        env.reset()
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
@@ -28,8 +27,7 @@ def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
         wandb.log(
             {
                 "reward": reward / N,
-                "action": (action * high_len) / (T * N),
-                "current_task": env.env.realgoal,
+                "action": (action * high_len) / (T * N)
             }
         )
     return reward / N, (action * high_len) / (T * N)
@@ -94,7 +92,7 @@ if __name__ == "__main__":
     # number of low level policies
     parser.add_argument("--num_low", default=2, type=int)
     # name of the environment
-    parser.add_argument("--env", default="MovementBandits-v0", type=str)
+    parser.add_argument("--env", default="AntBandits-v1", type=str)
     # continue training
     parser.add_argument("-c", action="store_true")
     # virutal display setting
@@ -177,8 +175,8 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, args.T, args.high_len)
             wandb.log(
                 {
-                    "pretrain-video-%d"
-                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                    "pretrain-video-%s"
+                    % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
                 }
             )
 
@@ -195,8 +193,8 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, args.T, args.high_len)
             wandb.log(
                 {
-                    "after-warmup-video-%d"
-                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                    "pretrain-video-%s"
+                    % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
                 }
             )
 
@@ -226,7 +224,7 @@ if __name__ == "__main__":
             video = agent.rollout_render(env, args.T, args.high_len)
             wandb.log(
                 {
-                    "after-joint-video-%d"
-                    % (env.env.realgoal): wandb.Video(video, fps=24, format="gif")
+                    "pretrain-video-%s"
+                    % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
                 }
             )
