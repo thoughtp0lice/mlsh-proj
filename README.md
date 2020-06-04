@@ -27,8 +27,10 @@ Change `-W` to adjust warm-up period length and `-U` to adjust joint update peri
 ## Results
 - MovementBandit
   - Learning curve
-    ![curve_on_MB.png](./assets/curve_on_MB.png)
-  - Videos
+    |Task 1|Task 0|Both Task|
+    |------|------|---------|
+    |![](assets/1_trained_reward_mb.png)|![](assets/0_trained_reward_mb.png)|![](assets/trained_reward_mb.png)|
+  - Videos (after training for 500 episodes)
     | Task| Pretrain| After Warm-up| 
     |-----|---------|------------|
     |    0|![](assets/pretrain-video-0.gif)|![](assets/after-warmup-video-0.gif)|
