@@ -47,19 +47,19 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     # num of envs
-    parser.add_argument("-N", default=40, type=int)
+    parser.add_argument("-N", default=50, type=int)
     # warm up length
-    parser.add_argument("-W", default=60, type=int)
+    parser.add_argument("-W", default=20, type=int)
     # joint training
-    parser.add_argument("-U", default=1, type=int)
+    parser.add_argument("-U", default=40, type=int)
     # number of tasks
-    parser.add_argument("--tasks", default=5000, type=int)
+    parser.add_argument("--tasks", default=2000, type=int)
     # number of optimization epochs
     parser.add_argument("-K", default=10, type=int)
     # Horizon
-    parser.add_argument("-T", default=50, type=int)
+    parser.add_argument("-T", default=300, type=int)
     # master policy last for
-    parser.add_argument("--high_len", default=10, type=int)
+    parser.add_argument("--high_len", default=60, type=int)
     # batch size
     parser.add_argument("--bs", default=64, type=int)
     # learning rate low

@@ -321,6 +321,9 @@ class DiscPolicy:
         """
         if self.memory.curr == 0 or batch_size == 0:
             return 0
+        
+        if batch_size > self.memory.curr:
+            batch_size = self.memory.curr
 
         losses = []
 

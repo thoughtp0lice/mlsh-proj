@@ -83,7 +83,7 @@ class RolloutMemory:
         self.v_targ[: self.curr] = self.v_targ[shuffle]
         self.v_old[: self.curr] = self.v_old[shuffle]
 
-        while (self.curr - size) > self.iter_curr:
+        while (self.curr - size) >= self.iter_curr:
             yield (
                 self.prev_state_memory[self.iter_curr : self.iter_curr + size],
                 self.action_memory[self.iter_curr : self.iter_curr + size],
