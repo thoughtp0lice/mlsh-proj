@@ -39,17 +39,17 @@ def advantage(t, deltas, gamma, lam):
 
 class RunningMeanStd:
     def __init__(self, size, epsilon=1e-2):
-        '''
+        """
         keep a running mean and std
-        '''
+        """
         self.count = epsilon
         self.mean = np.zeros(size)
         self.var = np.ones(size)
 
     def update(self, x):
-        '''
+        """
         update running mean and std given a new data point
-        '''
+        """
         old_count = self.count
         self.count += 1
 
@@ -60,9 +60,9 @@ class RunningMeanStd:
         self.var = M2 / self.count
 
     def filter(self, x):
-        '''
+        """
         update running mean and std
         return normalized data
-        '''
+        """
         self.update(x)
         return np.clip((x - self.mean) / np.sqrt(self.var), -5.0, 5.0)

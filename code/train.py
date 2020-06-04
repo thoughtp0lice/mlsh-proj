@@ -1,35 +1,26 @@
 import time
-import pickle
 import argparse
 import random
 import atexit
-import test_envs
-import gym
-from gym import wrappers
 import torch
 import numpy as np
 import wandb
 from pyvirtualdisplay import Display
+import gym
 import policy
-import mlsh_util
 
 
 def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     agent.forget()
     reward = 0
     action = 0
-    for i in range(N):
+    for _ in range(N):
         r, a = agent.high_rollout(env, T, high_len, gamma, lam)
         reward += r
         action += a
     agent.normalize_adv()
     if not test:
-        wandb.log(
-            {
-                "reward": reward / N,
-                "action": (action * high_len) / (T * N)
-            }
-        )
+        wandb.log({"reward": reward / N, "action": (action * high_len) / (T * N)})
     return reward / N, (action * high_len) / (T * N)
 
 
@@ -185,7 +176,7 @@ if __name__ == "__main__":
             rollout(env, agent, args.N, args.T, args.high_len, args.gamma, args.lam)
             for _ in range(args.K):
                 agent.warmup_optim_epi(
-                    args.epsilon, args.gamma, args.bs, args.c1, args.c2
+                    args.epsilon, args.bs, args.c1, args.c2
                 )
 
         # log video
@@ -216,7 +207,7 @@ if __name__ == "__main__":
             rollout(env, agent, args.N, args.T, args.high_len, args.gamma, args.lam)
             for _ in range(args.K):
                 agent.joint_optim_epi(
-                    args.epsilon, args.gamma, args.bs, args.c1, args.c2, args.c2_low
+                    args.epsilon, args.bs, args.c1, args.c2, args.c2_low
                 )
 
         # log video

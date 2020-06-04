@@ -47,10 +47,10 @@ class Actor(nn.Module):
         return mean, std
 
     def action(self, state):
-        '''
+        """
         select a action return clipped action and log probability
         and raw action output by the network
-        '''
+        """
         if not isinstance(state, torch.Tensor):
             state = torch.from_numpy(state).float()
         # mean and standard deviation of distribution
@@ -62,9 +62,9 @@ class Actor(nn.Module):
         return a.tolist(), log_p_a.detach(), raw_a.tolist()
 
     def policy_out(self, state):
-        '''
+        """
         tensor for all the mean and tensor for all the standard deviation
-        '''
+        """
         mean, std = self.forward(state)
         return mean, std
 

@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.distributions import normal
 from torch.distributions import Categorical
-import mlsh_util
 
 # out put mean and standard deviation
 class Actor(nn.Module):
@@ -37,9 +35,9 @@ class Actor(nn.Module):
         return x
 
     def action(self, state):
-        '''
+        """
         select a action return action and probability and action as raw_a
-        '''
+        """
         if not isinstance(state, torch.Tensor):
             state = torch.from_numpy(state).float()
         probs = self.forward(state).view(-1)

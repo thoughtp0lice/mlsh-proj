@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 import wandb
-import pickle
 import cont_net
 import disc_net
 import rollout_memory
@@ -9,7 +8,6 @@ import mlsh_util
 
 
 class HierPolicy:
-
     def __init__(
         self,
         input_size,
@@ -21,15 +19,15 @@ class HierPolicy:
         disc=True,
         action_scale=1.0,
     ):
-        '''
-        set up a hierchical policy 
+        """
+        set up a hierchical policy
         use input_size, output_size to set the size of output
         use num_low to set num of low level policy
         llr set the learning rate of lowlevel policies
         hlr set the learning rate of highlevel policies
         set disc to false to enable continous control and true for discrete control
         the range of action in lowlevel policy is (-action_scale, action_scale)
-        '''
+        """
         self.high = DiscPolicy(input_size, num_low, memory_capacity, hlr)
         self.low = []
         self.input_size = input_size
@@ -51,62 +49,62 @@ class HierPolicy:
                 )
 
     def forget(self):
-        '''
+        """
         use to clear all the replay buffer
-        '''
+        """
         self.high.memory.clear()
         for low_p in self.low:
             low_p.memory.clear()
 
     def high_init(self):
-        '''
+        """
         use to clear high level policy and initialize again
-        '''
+        """
         self.high = DiscPolicy(
             self.input_size, self.num_low, self.memory_capacity, self.hlr
         )
 
-    def warmup_optim_epi(self, epsilon, gamma, batch_size, c1, c2, vclip=False):
-        '''
+    def warmup_optim_epi(self, epsilon, batch_size, c1, c2, vclip=False):
+        """
         update only high level policy for one epoch
         set vclip to True to clip v value while optimizing
-        '''
+        """
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_", vclip=vclip
+            epsilon, batch_size, c1, c2, log="high_", vclip=vclip
         )
 
     def normalize_adv(self):
-        '''normalize stored advantage in all the replay buffers'''
+        """normalize stored advantage in all the replay buffers"""
         self.high.memory.normalize_adv()
         for low_p in self.low:
             low_p.memory.normalize_adv()
 
     def joint_optim_epi(
-        self, epsilon, gamma, batch_size, c1, c2, c2_low, num_batch=15, vclip=False
+        self, epsilon, batch_size, c1, c2, c2_low, num_batch=15, vclip=False
     ):
-        '''
+        """
         update all the policies for one epoch
         num_batch set the number of batchs to seperate the memories into
         set vclip to True to clip v value while optimizing
-        '''
+        """
         self.high.optim_epi(
-            epsilon, gamma, batch_size, c1, c2, log="high_", vclip=vclip
+            epsilon, batch_size, c1, c2, log="high_", vclip=vclip
         )
         for i, low_p in enumerate(self.low):
             if low_p.memory.curr < num_batch:
                 continue
             size = int(low_p.memory.curr / num_batch)
             low_p.optim_epi(
-                epsilon, gamma, size, c1, c2_low, log=str(i) + "low_", vclip=vclip
+                epsilon, size, c1, c2_low, log=str(i) + "low_", vclip=vclip
             )
 
     def rollout_render(self, env, T, high_len):
-        '''
+        """
         rollot and render agent on env for T time steps
         return a np series of rendered images
         dimensions are time, channels, width, height
         this does not store information in memory
-        '''
+        """
         video = []
         obs = env.reset()
         obs = self.rms.filter(obs)
@@ -115,9 +113,9 @@ class HierPolicy:
         done = False
         while t < T and not done:
             high_action, _, _ = self.high.actor.action(obs)
-            for i in range(high_len):
+            for _ in range(high_len):
                 low_action, _, _ = self.low[high_action].actor.action(obs)
-                obs, r, done, _ = env.step(low_action)
+                obs, _, done, _ = env.step(low_action)
                 obs = self.rms.filter(obs)
                 video.append(env.render(mode="rgb_array"))
                 t += 1
@@ -126,11 +124,11 @@ class HierPolicy:
         return np.transpose(np.array(video), (0, 3, 1, 2))
 
     def high_rollout(self, env, T, high_len, gamma, lam):
-        '''
+        """
         rollout agent but not render agent for T time step on env
         store all the necessary data in memory
         return total reward and sum of all high level actions
-        '''
+        """
         total_reward = 0
         advantages = []
         probs = []
@@ -170,7 +168,7 @@ class HierPolicy:
                 raw_a = action
 
             post_state, r, done, roll_len = self.low_rollout(
-                env, prev_state, action, high_len, gamma, lam, low_roll,
+                env, prev_state, action, high_len, gamma, low_roll,
             )
             probs.append(prob)
             prev_states.append(prev_state)
@@ -183,7 +181,7 @@ class HierPolicy:
             curr_steps += high_len
             if done:
                 break
-        
+
         # process and store high data
         probs = torch.Tensor(probs)
         prev_states = torch.Tensor(prev_states)
@@ -250,17 +248,16 @@ class HierPolicy:
 
         return total_reward, np.sum(list(actions))
 
-    def low_rollout(self, env, init_state, action, high_len, gamma, lam, low_roll):
-        '''
+    def low_rollout(self, env, init_state, action, high_len, gamma, low_roll):
+        """
         rollout high_len time steps using low policy selected by action
         store all the data in low_roll
         first three return value same as the env return
         last one returns the number of time steps of this rollout
-        '''
+        """
         low_policy = self.low[action]
 
         total_reward = 0
-        advantages = low_roll["advantages"]
         probs = low_roll["probs"]
         prev_states = low_roll["prev_states"]
         actions = low_roll["actions"]
@@ -272,7 +269,7 @@ class HierPolicy:
 
         done = False
         post_state = init_state
-        for i in range(high_len):
+        for _ in range(high_len):
             prev_state = post_state
             action, prob, raw_a = low_policy.actor.action(prev_state)
 
@@ -307,9 +304,9 @@ class HierPolicy:
 
 class DiscPolicy:
     def __init__(self, input_size, output_size, memory_capacity, lr):
-        '''
+        """
         implements ppo that gives discrete out put
-        '''
+        """
         self.actor = disc_net.Actor(input_size, output_size)
         self.critic = disc_net.Critic(input_size)
         self.memory = rollout_memory.RolloutMemory(memory_capacity, input_size, 1)
@@ -317,11 +314,11 @@ class DiscPolicy:
             list(self.actor.parameters()) + list(self.critic.parameters()), lr=lr
         )
 
-    def optim_epi(self, epsilon, gamma, batch_size, c1, c2, log="", vclip=False):
-        '''
+    def optim_epi(self, epsilon, batch_size, c1, c2, log="", vclip=False):
+        """
         optimize epi for an episode that goes through all the data in memory
         log changes the name of hte log in wandb
-        '''
+        """
         if self.memory.curr == 0 or batch_size == 0:
             return 0
 
@@ -387,12 +384,13 @@ class DiscPolicy:
 
         return np.mean(losses)
 
+
 class ContPolicy:
     def __init__(self, input_size, output_size, action_scale, memory_capacity, lr):
-        '''
+        """
         optimize epi for an episode that goes through all the data in memory
         action is in range (-action_scale, action_scale)
-        '''
+        """
         self.actor = cont_net.Actor(input_size, output_size, action_scale)
         self.critic = cont_net.Critic(input_size)
         self.memory = rollout_memory.RolloutMemory(
@@ -403,11 +401,11 @@ class ContPolicy:
         )
 
     def optim_epi(
-        self, epsilon, gamma, batch_size, c1, c2, log="", vclip=False,
+        self, epsilon, batch_size, c1, c2, log="", vclip=False,
     ):
-        '''
+        """
         optimize epi for an episode that goes through all the data in memory
-        '''
+        """
         if self.memory.curr == 0 or batch_size == 0:
             return 0
 
