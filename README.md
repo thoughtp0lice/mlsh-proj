@@ -31,8 +31,8 @@ Change `-W` to adjust warm-up period length and `-U` to adjust joint update peri
     |------|------|---------|
     |![](assets/1_trained_reward_mb.png)|![](assets/0_trained_reward_mb.png)|![](assets/trained_reward_mb.png)|
   - Videos (after training for 500 episodes)
-    | Task| Pretrain| After Warm-up| 
-    |-----|---------|------------|
+    | Task| high-level policy initialized| high-level policy trained| 
+    |-----|------------------------------|--------------------------|
     |    0|![](assets/pretrain-video-0.gif)|![](assets/after-warmup-video-0.gif)|
     |    1|![](assets/pretrain-video-1.gif)|![](assets/after-warmup-video-1.gif)|
 
