@@ -474,7 +474,7 @@ class ContPolicy:
 class ContNet():
     class Actor(nn.Module):
         def __init__(self, input_size, output_size, action_scale):
-            super(Actor, self).__init__()
+            super().__init__()
             # mean
             self.mean_fc1 = nn.Linear(input_size, 64)
             self.mean_fc2 = nn.Linear(64, 64)
@@ -522,7 +522,7 @@ class ContNet():
                 state = torch.from_numpy(state).float()
             # mean and standard deviation of distribution
             mean, std = self.forward(state)
-            dist = normal.Normal(mean, std)
+            dist = torch.distributions.normal.Normal(mean, std)
             raw_a = dist.sample()
             a = self.s * torch.tanh(raw_a)
             log_p_a = mlsh_util.get_cont_prob(mean, std, raw_a, self.s).sum()
@@ -539,7 +539,7 @@ class ContNet():
     # value function
     class Critic(nn.Module):
         def __init__(self, input_size):
-            super(Critic, self).__init__()
+            super().__init__()
             self.fc1 = nn.Linear(input_size, 128)
             self.fc2 = nn.Linear(128, 128)
             self.fc3 = nn.Linear(128, 128)
@@ -571,7 +571,7 @@ class ContNet():
 class DiscNet():
     class Actor(nn.Module):
         def __init__(self, input_size, output_size):
-            super(Actor, self).__init__()
+            super().__init__()
             # mean
             self.fc1 = nn.Linear(input_size, 64)
             self.fc2 = nn.Linear(64, 64)
@@ -607,7 +607,7 @@ class DiscNet():
             if not isinstance(state, torch.Tensor):
                 state = torch.from_numpy(state).float()
             probs = self.forward(state).view(-1)
-            dist = Categorical(probs=probs)
+            dist = torch.distributions.Categorical(probs=probs)
             a = dist.sample()
             p_a = probs[a]
             return a.item(), p_a.detach(), a.item()
@@ -616,7 +616,7 @@ class DiscNet():
     # value function
     class Critic(nn.Module):
         def __init__(self, input_size):
-            super(Critic, self).__init__()
+            super().__init__()
             self.fc1 = nn.Linear(input_size, 64)
             self.fc2 = nn.Linear(64, 64)
             self.fc3 = nn.Linear(64, 64)
