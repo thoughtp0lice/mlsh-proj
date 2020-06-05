@@ -21,7 +21,7 @@ This repo is an implementation of [Meta Learning Shared Hierarchies](https://arx
 
 cd into `code` and run
 ```
-python train.py -W 60 -U 1 --env MovementBandit-v1
+python train.py -W 60 -U 1 --env MovementBandits-v0
 ```
 Change `-W` to adjust warm-up period length and `-U` to adjust joint update period. Use `--env` to specify the environment to run experiment on. More options and usages can be find `train.py`  
 
