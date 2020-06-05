@@ -47,25 +47,6 @@ class RolloutMemory:
         self.done_memory[self.curr : self.curr + size] = done
         self.curr += size
 
-    def get_batch(self, size):
-        """
-        get a random batch of data of size [size]
-        """
-        if size > self.curr:
-            size = self.curr
-        out = np.random.choice(self.curr, size, replace=False)
-        return (
-            self.prev_state_memory[out],
-            self.action_memory[out],
-            self.reward_memory[out],
-            self.post_state_memory[out],
-            self.prob_memory[out],
-            self.advantage_memory[out],
-            self.v_targ[out],
-            self.v_old[out],
-            self.done_memory[out],
-        )
-
     def iterate(self, size):
         """
         generater through the dataset with a batch of size [size] in each return

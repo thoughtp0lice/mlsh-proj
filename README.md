@@ -15,6 +15,7 @@ This repo is an implementation of [Meta Learning Shared Hierarchies](https://arx
 - wandb
 - mujoco-py
 - Python3.6
+- pyglet 1.3.1
 
 ## Running experiments
 
