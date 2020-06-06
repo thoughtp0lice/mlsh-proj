@@ -36,6 +36,16 @@ Change `-W` to adjust warm-up period length and `-U` to adjust joint update peri
     |-----|------------------------------|--------------------------|
     |    0|![](assets/pretrain-video-0.gif)|![](assets/after-warmup-video-0.gif)|
     |    1|![](assets/pretrain-video-1.gif)|![](assets/after-warmup-video-1.gif)|
+- AntBandits
+  - Learning curve
+    |Task [5 0]|Task [0 5]|Both Task|
+    |----------|----------|---------|
+    |![](assets/50_trained_reward.png)|![](assets/05_trained_reward.png)|![](assets/trained_reward_ab.png)|
+  - Videos (after training for 50 episodes)
+    | Task| high-level policy initialized| high-level policy trained| 
+    |-----|------------------------------|--------------------------|
+    |[5 0]|![](assets/pretrain-video-50.gif)|![](assets/warmup-video-50.gif)|
+    |[0 5]|![](assets/pretrain-video-05.gif)|![](assets/warmup-video-05.gif)|
 
 
 ## References
