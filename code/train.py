@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import wandb
 from pyvirtualdisplay import Display
+import test_envs
 import gym
 import policy
 
