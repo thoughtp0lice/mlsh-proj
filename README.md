@@ -34,8 +34,8 @@ Change `-W` to adjust warm-up period length and `-U` to adjust joint update peri
   - Videos (after training for 500 episodes)
     | Task| high-level policy initialized| high-level policy trained| 
     |-----|------------------------------|--------------------------|
-    |    0|![](assets/pretrain-video-0.gif)|![](assets/after-warmup-video-0.gif)|
-    |    1|![](assets/pretrain-video-1.gif)|![](assets/after-warmup-video-1.gif)|
+    |Green|<img src="assets/pretrain-video-0.gif" width="150">|<img src="assets/after-warmup-video-0.gif" width="150">|
+    |Purple|<img src="assets/pretrain-video-1.gif" width="150">|<img src="assets/after-warmup-video-1.gif" width="150">|
 - AntBandits
   - Learning curve
     |Task [5 0]|Task [0 5]|Both Task|
@@ -44,8 +44,8 @@ Change `-W` to adjust warm-up period length and `-U` to adjust joint update peri
   - Videos (after training for 50 episodes)
     | Task| high-level policy initialized| high-level policy trained| 
     |-----|------------------------------|--------------------------|
-    |[5 0]|![](assets/pretrain-video-50.gif)|![](assets/warmup-video-50.gif)|
-    |[0 5]|![](assets/pretrain-video-05.gif)|![](assets/warmup-video-05.gif)|
+    |Left|<img src="assets/pretrain-video-50.gif" width="150">|<img src="assets/warmup-video-50.gif" width="150">|
+    |Up|<img src="assets/pretrain-video-05.gif" width="150">|<img src="assets/warmup-video-05.gif" width="150">|
 
 
 ## References
