@@ -1,7 +1,6 @@
 __pycache__
 .DS_Store
 venv
-gym
 wandb
 mlsh_videos
 .vscode
