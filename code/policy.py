@@ -68,9 +68,7 @@ class HierPolicy:
         update only high level policy for one epoch
         set vclip to True to clip v value while optimizing
         """
-        self.high.optim_epi(
-            epsilon, batch_size, c1, c2, log="high_", vclip=vclip
-        )
+        self.high.optim_epi(epsilon, batch_size, c1, c2, log="high_", vclip=vclip)
 
     def normalize_adv(self):
         """normalize stored advantage in all the replay buffers"""
@@ -86,16 +84,12 @@ class HierPolicy:
         num_batch set the number of batchs to seperate the memories into
         set vclip to True to clip v value while optimizing
         """
-        self.high.optim_epi(
-            epsilon, batch_size, c1, c2, log="high_", vclip=vclip
-        )
+        self.high.optim_epi(epsilon, batch_size, c1, c2, log="high_", vclip=vclip)
         for i, low_p in enumerate(self.low):
             if low_p.memory.curr < num_batch:
                 continue
             size = int(low_p.memory.curr / num_batch)
-            low_p.optim_epi(
-                epsilon, size, c1, c2_low, log=str(i) + "low_", vclip=vclip
-            )
+            low_p.optim_epi(epsilon, size, c1, c2_low, log=str(i) + "low_", vclip=vclip)
 
     def rollout_render(self, env, T, high_len):
         """
@@ -321,7 +315,7 @@ class DiscPolicy:
         """
         if self.memory.curr == 0 or batch_size == 0:
             return 0
-        
+
         if batch_size > self.memory.curr:
             batch_size = self.memory.curr
 
@@ -472,7 +466,8 @@ class ContPolicy:
 
             return np.mean(losses)
 
-class ContNet():
+
+class ContNet:
     class Actor(nn.Module):
         def __init__(self, input_size, output_size, action_scale):
             super().__init__()
@@ -536,7 +531,6 @@ class ContNet():
             mean, std = self.forward(state)
             return mean, std
 
-
     # value function
     class Critic(nn.Module):
         def __init__(self, input_size):
@@ -569,7 +563,8 @@ class ContNet():
                 - self.forward(s1).view(-1)
             )
 
-class DiscNet():
+
+class DiscNet:
     class Actor(nn.Module):
         def __init__(self, input_size, output_size):
             super().__init__()
@@ -612,7 +607,6 @@ class DiscNet():
             a = dist.sample()
             p_a = probs[a]
             return a.item(), p_a.detach(), a.item()
-
 
     # value function
     class Critic(nn.Module):

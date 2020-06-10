@@ -18,8 +18,14 @@ The full algorithm is as follows:
 
 
 ## Installation
-1. Clone the [original repo](https://github.com/openai/mlsh) and copy gym from it then run `pip install -e .` inside that directory
-1. Install `test_envs` following the instructions from [original repo](https://github.com/openai/mlsh)
+1. Add to your `.bash_profile` (replace ... with path to directory):
+    ```
+    export PYTHONPATH=$PYTHONPATH:/.../mlsh-proj/gym;
+    export PYTHONPATH=$PYTHONPATH:/.../mlsh-proj/rl-algs;
+    ```
+2. `cd` into `gym` then run `pip install -e .` inside that directory.
+3. `cd` into `test_envs` then run `pip install -e .` inside that directory.
+4. `cd` to main directory and run `pip install -r requirements.txt`
 
 ## Dependices
 
@@ -28,6 +34,7 @@ The full algorithm is as follows:
 - mujoco-py
 - Python3.6
 - pyglet 1.3.1
+- CUDA 9.2 (if a different version of CUDA is used chage `torch` version in `requirements.txt` accordingly)
 
 ## Running experiments
 
