@@ -168,7 +168,7 @@ if __name__ == "__main__":
             wandb.log(
                 {
                     "pretrain-video-%s"
-                    % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
+                    % (str(env.env.realgoal)): wandb.Video(video, fps=60, format="gif")
                 }
             )
 
@@ -186,7 +186,7 @@ if __name__ == "__main__":
             wandb.log(
                 {
                     "warmup-video-%s"
-                    % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
+                    % (str(env.env.realgoal)): wandb.Video(video, fps=60, format="gif")
                 }
             )
 
@@ -217,6 +217,6 @@ if __name__ == "__main__":
             wandb.log(
                 {
                     "afterjoint-video-%s"
-                    % (str(env.env.realgoal)): wandb.Video(video, fps=24, format="gif")
+                    % (str(env.env.realgoal)): wandb.Video(video, fps=60, format="gif")
                 }
             )
