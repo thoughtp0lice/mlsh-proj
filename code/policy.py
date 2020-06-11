@@ -7,10 +7,11 @@ import mlsh_util
 
 
 class DiscPolicy:
+    """
+    PPO that gives discrete output
+    """
+
     def __init__(self, input_size, output_size, memory_capacity, lr):
-        """
-        implements ppo that gives discrete out put
-        """
         self.actor = DiscNet.Actor(input_size, output_size)
         self.critic = DiscNet.Critic(input_size)
         self.memory = rollout_memory.RolloutMemory(memory_capacity, input_size, 1)
@@ -92,12 +93,75 @@ class DiscPolicy:
         return np.mean(losses)
 
 
+class DiscNet:
+    '''
+    Actor and Critics used in DiscPolicy
+    '''
+
+    class Actor(nn.Module):
+        def __init__(self, input_size, output_size, hidden_size=64, hidden_num=2):
+            super().__init__()
+            self.output_size = output_size
+            self.linears = nn.ModuleList([nn.Linear(input_size, hidden_size)])
+            for i in range(hidden_num):
+                self.linears.append(nn.Linear(hidden_size, hidden_size))
+            self.linears.append(nn.Linear(hidden_size, output_size))
+
+            for l in self.linears:
+                nn.init.orthogonal_(l.weight)
+
+        def forward(self, x):
+            for i in range(len(self.linears) - 1):
+                x = torch.relu(self.linears[i](x))
+            x = self.linears[-1](x)
+            x = x.view(-1, self.output_size)
+            x = torch.softmax(x, dim=1)
+            return x
+
+        def action(self, state):
+            """
+            select a action return action and probability and action as raw_a
+            """
+            if not isinstance(state, torch.Tensor):
+                state = torch.from_numpy(state).float()
+            probs = self.forward(state).view(-1)
+            dist = torch.distributions.Categorical(probs=probs)
+            a = dist.sample()
+            p_a = probs[a]
+            return a.item(), p_a.detach(), a.item()
+
+    class Critic(nn.Module):
+        def __init__(self, input_size, hidden_size=64, hidden_num=2):
+            super().__init__()
+            self.linears = nn.ModuleList([nn.Linear(input_size, hidden_size)])
+            for i in range(hidden_num):
+                self.linears.append(nn.Linear(hidden_size, hidden_size))
+            self.linears.append(nn.Linear(hidden_size, 1))
+
+            for l in self.linears:
+                nn.init.orthogonal_(l.weight)
+
+        def forward(self, x):
+            for i in range(len(self.linears) - 1):
+                x = torch.relu(self.linears[i](x))
+            x = self.linears[-1](x)
+            return x
+
+        def delta(self, s1, s2, r, done, gamma):
+            nonterminal = 1 - done.float()
+            return (
+                r
+                + gamma * self.forward(s2).view(-1) * nonterminal
+                - self.forward(s1).view(-1)
+            )
+
+
 class ContPolicy:
+    '''
+    PPO that gives continous output
+    '''
+
     def __init__(self, input_size, output_size, action_scale, memory_capacity, lr):
-        """
-        optimize epi for an episode that goes through all the data in memory
-        action is in range (-action_scale, action_scale)
-        """
         self.actor = ContNet.Actor(input_size, output_size, action_scale)
         self.critic = ContNet.Critic(input_size)
         self.memory = rollout_memory.RolloutMemory(
@@ -177,67 +241,10 @@ class ContPolicy:
             return np.mean(losses)
 
 
-class DiscNet:
-    class Actor(nn.Module):
-        def __init__(self, input_size, output_size, hidden_size=64, hidden_num=2):
-            super().__init__()
-            self.output_size = output_size
-            self.linears = nn.ModuleList([nn.Linear(input_size, hidden_size)])
-            for i in range(hidden_num):
-                self.linears.append(nn.Linear(hidden_size, hidden_size))
-            self.linears.append(nn.Linear(hidden_size, output_size))
-
-            for l in self.linears:
-                nn.init.orthogonal_(l.weight)
-
-        def forward(self, x):
-            for i in range(len(self.linears) - 1):
-                x = torch.relu(self.linears[i](x))
-            x = self.linears[-1](x)
-            x = x.view(-1, self.output_size)
-            x = torch.softmax(x, dim=1)
-            return x
-
-        def action(self, state):
-            """
-            select a action return action and probability and action as raw_a
-            """
-            if not isinstance(state, torch.Tensor):
-                state = torch.from_numpy(state).float()
-            probs = self.forward(state).view(-1)
-            dist = torch.distributions.Categorical(probs=probs)
-            a = dist.sample()
-            p_a = probs[a]
-            return a.item(), p_a.detach(), a.item()
-
-    # value function
-    class Critic(nn.Module):
-        def __init__(self, input_size, hidden_size=64, hidden_num=2):
-            super().__init__()
-            self.linears = nn.ModuleList([nn.Linear(input_size, hidden_size)])
-            for i in range(hidden_num):
-                self.linears.append(nn.Linear(hidden_size, hidden_size))
-            self.linears.append(nn.Linear(hidden_size, 1))
-
-            for l in self.linears:
-                nn.init.orthogonal_(l.weight)
-
-        def forward(self, x):
-            for i in range(len(self.linears) - 1):
-                x = torch.relu(self.linears[i](x))
-            x = self.linears[-1](x)
-            return x
-
-        def delta(self, s1, s2, r, done, gamma):
-            nonterminal = 1 - done.float()
-            return (
-                r
-                + gamma * self.forward(s2).view(-1) * nonterminal
-                - self.forward(s1).view(-1)
-            )
-
-
 class ContNet:
+    '''
+    Actor and critic used in ContPolicy
+    '''
     class Actor(nn.Module):
         def __init__(
             self, input_size, output_size, action_scale, hidden_num=3, hidden_size=64

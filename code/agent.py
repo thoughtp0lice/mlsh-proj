@@ -7,27 +7,24 @@ import mlsh_util
 import policy
 
 
-class mlshAgent:
+class MLSHAgent:
+    """
+    Main agent for MLSH 
+    Includes high and low level policies, rollout memories,
+    function for rollout, and function for optimization
+    """
+
     def __init__(
         self,
         input_size,
         output_size,
-        memory_capacity,
-        num_low,
-        llr,
-        hlr,
-        disc=True,
-        action_scale=1.0,
+        memory_capacity,  # capacity for rollout memory
+        num_low,  # number of low level policy
+        llr,  # learning rate for low level policy
+        hlr,  # learning rate for high level policy
+        disc=True,  # discrete or continous action output
+        action_scale=1.0,  # scale action range
     ):
-        """
-        set up a hierchical policy
-        use input_size, output_size to set the size of output
-        use num_low to set num of low level policy
-        llr set the learning rate of lowlevel policies
-        hlr set the learning rate of highlevel policies
-        set disc to false to enable continous control and true for discrete control
-        the range of action in lowlevel policy is (-action_scale, action_scale)
-        """
         self.high = policy.DiscPolicy(input_size, num_low, memory_capacity, hlr)
         self.low = []
         self.input_size = input_size
@@ -50,7 +47,7 @@ class mlshAgent:
 
     def forget(self):
         """
-        use to clear all the replay buffer
+        clear all the replay buffer
         """
         self.high.memory.clear()
         for low_p in self.low:
@@ -58,30 +55,34 @@ class mlshAgent:
 
     def high_init(self):
         """
-        use to clear high level policy and initialize again
+        clear reinitialize high level policy
         """
         self.high = policy.DiscPolicy(
             self.input_size, self.num_low, self.memory_capacity, self.hlr
         )
 
-    def warmup_optim_epi(self, epsilon, batch_size, c1, c2, vclip=False):
-        """
-        update only high level policy for one epoch
-        set vclip to True to clip v value while optimizing
-        """
-        self.high.optim_epi(epsilon, batch_size, c1, c2, log="high_", vclip=vclip)
-
     def normalize_adv(self):
-        """normalize stored advantage in all the replay buffers"""
+        """
+        normalize stored advantage in all the replay buffers
+        """
         self.high.memory.normalize_adv()
         for low_p in self.low:
             low_p.memory.normalize_adv()
+
+    def warmup_optim_epi(self, epsilon, batch_size, c1, c2, vclip=False):
+        """
+        update only high level policy for one epoch
+        used in warmup period during training
+        set vclip to True to clip v value while optimizing
+        """
+        self.high.optim_epi(epsilon, batch_size, c1, c2, log="high_", vclip=vclip)
 
     def joint_optim_epi(
         self, epsilon, batch_size, c1, c2, c2_low, num_batch=15, vclip=False
     ):
         """
-        update all the policies for one epoch
+        update all policies for one epoch
+        used in joint update period
         num_batch set the number of batchs to seperate the memories into
         set vclip to True to clip v value while optimizing
         """
@@ -100,24 +101,24 @@ class mlshAgent:
         this does not store information in memory
         """
         video = []
-        obs = env.reset()
-        obs = self.rms.filter(obs)
+        state = env.reset()
+        state = self.rms.filter(state)
         video.append(env.render(mode="rgb_array"))
         t = 0
         done = False
         while t < T and not done:
-            high_action, _, _ = self.high.actor.action(obs)
+            high_action, _, _ = self.high.actor.action(state)
             for _ in range(high_len):
-                low_action, _, _ = self.low[high_action].actor.action(obs)
-                obs, _, done, _ = env.step(low_action)
-                obs = self.rms.filter(obs)
+                low_action, _, _ = self.low[high_action].actor.action(state)
+                state, _, done, _ = env.step(low_action)
+                ostatebs = self.rms.filter(state)
                 video.append(env.render(mode="rgb_array"))
                 t += 1
                 if done:
                     break
         return np.transpose(np.array(video), (0, 3, 1, 2))
 
-    def high_rollout(self, env, T, high_len, gamma, lam):
+    def rollout_episode(self, env, T, high_len, gamma, lam):
         """
         rollout agent but not render agent for T time step on env
         store all the necessary data in memory
@@ -134,6 +135,7 @@ class mlshAgent:
         low_roll_lens = []
 
         # dictionary to store in low rollout data
+        # shared across low rollouts in each episode
         low_roll = {
             "advantages": [],
             "probs": [],
@@ -171,7 +173,7 @@ class mlshAgent:
             if done:
                 break
 
-        # process and store high data
+        # turn stored datas into tensors
         probs = torch.Tensor(probs)
         prev_states = torch.Tensor(prev_states)
         actions = torch.Tensor(actions).reshape(-1, self.high.memory.action_size)
@@ -180,6 +182,7 @@ class mlshAgent:
         dones = torch.Tensor(dones)
         vpred = self.high.critic(prev_states).view(-1).detach()
 
+        # get advantage for high data
         deltas = self.high.critic.delta(prev_states, post_states, rewards, dones, gamma)
         for t in range(len(deltas)):
             advantages.append(mlsh_util.advantage(t, deltas, gamma, lam))
@@ -187,6 +190,7 @@ class mlshAgent:
 
         v_targ = advantages + vpred
 
+        # put collected data in memory
         self.high.memory.put_batch(
             prev_states,
             actions,
@@ -247,12 +251,6 @@ class mlshAgent:
         low_policy = self.low[action]
 
         total_reward = 0
-        probs = low_roll["probs"]
-        prev_states = low_roll["prev_states"]
-        actions = low_roll["actions"]
-        rewards = low_roll["rewards"]
-        post_states = low_roll["post_states"]
-        dones = low_roll["dones"]
 
         rollout_len = 0
 
@@ -265,21 +263,22 @@ class mlshAgent:
             post_state, r, done, _ = env.step(action)
             post_state = self.rms.filter(post_state)
 
-            probs.append(prob)
-            prev_states.append(prev_state)
-            post_states.append(post_state)
-            actions.append(raw_a)
-            rewards.append(r)
-            dones.append(done)
+            low_roll["probs"].append(prob)
+            low_roll["prev_states"].append(prev_state)
+            low_roll["post_states"].append(post_state)
+            low_roll["actions"].append(raw_a)
+            low_roll["rewards"].append(r)
+            low_roll["dones"].append(done)
+
             total_reward += r
             rollout_len += 1
             if done:
                 break
 
-        prev_d = torch.tensor(prev_states[-rollout_len:]).float()
+        prev_d = torch.tensor(low_roll["prev_states"][-rollout_len:]).float()
         post_d = torch.tensor(post_states[-rollout_len:]).float()
-        rewards_d = torch.tensor(rewards[-rollout_len:]).float()
-        dones_d = torch.tensor(dones[-rollout_len:]).float()
+        rewards_d = torch.tensor(low_roll["rewards"][-rollout_len:]).float()
+        dones_d = torch.tensor(low_roll["dones"][-rollout_len:]).float()
 
         deltas = low_policy.critic.delta(
             prev_d, post_d, rewards_d, dones_d, gamma
