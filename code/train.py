@@ -49,30 +49,47 @@ if __name__ == "__main__":
     parser.add_argument(
         "-N", default=50, type=int, help="num of episodes for each rollout"
     )
-    parser.add_argument("-W", default=20, type=int, help="arm up length")
-    parser.add_argument("-U", default=40, type=int, help="joint training length")
-    parser.add_argument("--tasks", default=2000, type=int, help="number of tasks")
+    parser.add_argument(
+        "-W", default=20, type=int, help="arm up length"
+    )
+    parser.add_argument(
+        "-U", default=40, type=int, help="joint training length"
+    )
+    parser.add_argument(
+        "--tasks", default=2000, type=int, help="number of tasks"
+    )
     parser.add_argument(
         "-K", default=10, type=int, help="number of optimization epochs"
     )
-    parser.add_argument("-T", default=300, type=int, help="horizon")
-    parser.add_argument("--high_len", default=60, type=int, help="master action length")
-    parser.add_argument("--bs", default=64, type=int, help="batch size")
+    parser.add_argument(
+        "-T", default=300, type=int, help="horizon"
+    )
+    parser.add_argument(
+        "--high_len", default=60, type=int, help="master action length"
+    )
+    parser.add_argument(
+        "--bs", default=64, type=int, help="batch size"
+    )
     parser.add_argument(
         "--llr", default=3e-4, type=float, help="low-level policy learning rate"
     )
     parser.add_argument(
         "--hlr", default=1e-2, type=float, help="high-level policy learning rate"
     )
-    parser.add_argument("--gamma", default=0.99, type=float, help="decay factor")
-    parser.add_argument("--lam", default=0.95, type=float, help="GAE prameter")
-    parser.add_argument("--epsilon", default=0.2, type=float, help="clipping parameter")
-    parser.add_argument("--c1", default=0.5, type=float, help="critic loss parameter")
     parser.add_argument(
-        "--c2",
-        default=0,
-        type=float,
-        help="entropy loss parameter for high-level policy",
+        "--gamma", default=0.99, type=float, help="decay factor"
+    )
+    parser.add_argument(
+        "--lam", default=0.95, type=float, help="GAE prameter"
+    )
+    parser.add_argument(
+        "--epsilon", default=0.2, type=float, help="clipping parameter"
+    )
+    parser.add_argument(
+        "--c1", default=0.5, type=float, help="critic loss parameter"
+    )
+    parser.add_argument(
+        "--c2", default=0, type=float, help="entropy loss parameter for high-level policy",
     )
     parser.add_argument(
         "--c2_low", default=0, type=float, help="entropy loss for low level policy"
@@ -80,15 +97,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--record", default=1, type=int, help="num of tasks between each record"
     )
-    parser.add_argument("--seed", default=626, type=int, help="random seed")
+    parser.add_argument(
+        "--seed", default=626, type=int, help="random seed"
+    )
     parser.add_argument(
         "--num_low", default=2, type=int, help="number of low level policies"
     )
     parser.add_argument(
         "--env", default="AntBandits-v1", type=str, help="name of the environment"
     )
-    parser.add_argument("-c", action="store_true", help="continue training")
-    parser.add_argument("--virdis", action="store_true", help="set virutal display")
+    parser.add_argument(
+        "-c", action="store_true", help="continue training"
+    )
+    parser.add_argument(
+        "--virdis", action="store_true", help="set virutal display"
+    )
 
     args = parser.parse_args()
 

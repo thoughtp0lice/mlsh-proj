@@ -110,7 +110,6 @@ class mlshAgent:
             for _ in range(high_len):
                 low_action, _, _ = self.low[high_action].actor.action(obs)
                 obs, _, done, _ = env.step(low_action)
-                env.render()
                 obs = self.rms.filter(obs)
                 video.append(env.render(mode="rgb_array"))
                 t += 1
