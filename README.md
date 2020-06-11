@@ -6,7 +6,7 @@ This repo is an implementation of [Meta Learning Shared Hierarchies](https://arx
 
 MLSH is a hierchical model that is able to find a set of low-level motor primitives that enable the high-level master policy to be learned quickly for each task sampled from a task distribution
 
-The architecture of MLSH is illustrated in the graph below. It consits of a high-level policy which is parameterized by $\theta$ that needs to be learned from strach per-task and a set of low-level policies parameterized by $\{\phi_i\}$ that are shared between all tasks and held fixed at test time. During rollout, high-level policy selects a low-level policy to activate, then for the next $N$ time step, actions are taken accroding to the output of the activated low-level policy.
+The architecture of MLSH is illustrated in the graph below. It consits of a high-level policy which is parameterized by &theta; that needs to be learned from strach per-task and a set of low-level policies parameterized by {&phi;<sub>i</sub>} that are shared between all tasks and held fixed at test time. During rollout, high-level policy selects a low-level policy to activate, then for the next *N* time step, actions are taken accroding to the output of the activated low-level policy.
 
 ![](assets/mlsh-arch.png)
 
