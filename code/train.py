@@ -95,26 +95,7 @@ if __name__ == "__main__":
         virtual_display.start()
 
     wandb.init(
-        config={
-            "num of actors": args.N,
-            "tasks": args.tasks,
-            "W": args.W,
-            "U": args.U,
-            "high_len": args.high_len,
-            "epochs": args.K,
-            "Horizon": args.T,
-            "batch size": args.bs,
-            "decay": args.gamma,
-            "GAE prameters": args.lam,
-            "clipping": args.epsilon,
-            "c1": args.c1,
-            "c2": args.c2,
-            "c2_low": args.c2_low,
-            "llr": args.llr,
-            "hlr": args.hlr,
-            "seed": args.seed,
-            "env": args.env,
-        },
+        config=args,
         name="mlsh-" + time_stamp,
     )
 
@@ -124,9 +105,11 @@ if __name__ == "__main__":
 
     action_size = 0
     disc = True
-    action_size = spaces.flatdim(env.action_space)
     if isinstance(env.action_space, spaces.Box):
+        action_size = env.action_space.shape[0]
         disc = False
+    elif isinstance(env.action_space, spaces.Discrete):
+        action_size = env.action_space.n
    
     if args.c:
         agent = load_agent()
@@ -134,7 +117,7 @@ if __name__ == "__main__":
         agent = policy.HierPolicy(
             env.observation_space.shape[0],
             action_size,
-            400 * args.T,
+            args.T,
             args.num_low,
             args.llr,
             args.hlr,
@@ -185,7 +168,7 @@ if __name__ == "__main__":
 
         # log reward when high-level policy is updated
         trained_reward, train_action = rollout(
-            env, agent, 400, args.T, args.high_len, args.gamma, args.lam, test=True
+            env, agent, args.N, args.T, args.high_len, args.gamma, args.lam, test=True
         )
         wandb.log(
             {
