@@ -49,9 +49,9 @@ Change `-W` to adjust warm-up period length, `-U` to adjust joint update period,
 - MovementBandit <br>
   - In this environment, an agent is placed in a world and shown the positions of two randomly placed points. The agent may take discrete actions to move in the four cardinal directions, or opt to stay still. One of the two points is marked as correct, although the agent does not receive information on which one it is. The agent receives a reward of 1 if it is within a certain distance of the correct point, and a reward of 0 otherwise.
   - Learning curves
-    |Task 1|Task 0|Both Task|
+    |Task Yellow|Task Purple|Both Task|
     |------|------|---------|
-    |![](assets/1_trained_reward_mb.png)|![](assets/0_trained_reward_mb.png)|![](assets/trained_reward_mb.png)|
+    |![](assets/0_trained_reward_mb.png)|![](assets/1_trained_reward_mb.png)|![](assets/trained_reward_mb.png)|
   - Videos (after training for 500 episodes) <br>
     **high-level policy initialized**: Video generaged when high-level policy is randomly initialized<br/>
     **high-level policy trained**: Video generated after warm-up period when high-level policy is trained to convergence.
@@ -62,7 +62,7 @@ Change `-W` to adjust warm-up period length, `-U` to adjust joint update period,
 - AntBandits <br>
   - In this environment, ant must maneuver towards red goal point, either towards the top or towards the right.
   - Learning curves
-    |Task [5 0]|Task [0 5]|Both Task|
+    |Task Right|Task Up|Both Task|
     |----------|----------|---------|
     |![](assets/50_trained_reward.png)|![](assets/05_trained_reward.png)|![](assets/trained_reward_ab.png)|
   - Videos (after training for 50 episodes)<br>
