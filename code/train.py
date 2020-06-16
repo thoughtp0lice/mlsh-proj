@@ -8,7 +8,7 @@ import wandb
 from pyvirtualdisplay import Display
 import test_envs
 import gym
-import agent
+import mlsh_agent
 
 
 def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     if args.c:
         agent = load_agent()
     else:
-        agent = agent.MLSHAgent(
+        agent = mlsh_agent.MLSHAgent(
             env.observation_space.shape[0],
             action_size,
             args.N * args.T,

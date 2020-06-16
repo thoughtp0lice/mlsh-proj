@@ -275,7 +275,7 @@ class ContNet:
             std = mean = x
             for i in range(len(self.mean_linears) - 1):
                 mean = torch.relu(self.mean_linears[i](mean))
-            mean = self.mean_linears[i](mean)
+            mean = self.mean_linears[-1](mean)
 
             for i in range(len(self.std_linears) - 1):
                 std = torch.relu(self.std_linears[i](std))
