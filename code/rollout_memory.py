@@ -35,6 +35,9 @@ class RolloutMemory:
         v_old,
         done,
     ):
+        '''
+        put a batch of data into the memory
+        '''
         size = len(prev_state)
         self.prob_memory[self.curr : self.curr + size] = prob
         self.action_memory[self.curr : self.curr + size][:] = action

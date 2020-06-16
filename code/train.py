@@ -15,17 +15,19 @@ def rollout(env, agent, N, T, high_len, gamma, lam, test=False):
     """
     rollout on env for N episodes that last for T time steps
     """
+    # clear memory
     agent.forget()
-    reward = 0
-    action = 0
+    total_reward = 0
+    total_action_sum = 0
     for _ in range(N):
-        r, a = agent.high_rollout(env, T, high_len, gamma, lam)
-        reward += r
-        action += a
+        # rollout one episode and get sum of reward and action
+        episode_reward_sum, episode_action_sum = agent.rollout_episode(env, T, high_len, gamma, lam)
+        total_reward += episode_reward_sum
+        total_action_sum += episode_action_sum
     agent.normalize_adv()
     if not test:
-        wandb.log({"reward": reward / N, "action": (action * high_len) / (T * N)})
-    return reward / N, (action * high_len) / (T * N)
+        wandb.log({"reward": total_reward / N, "action": (total_action_sum * high_len) / (T * N)})
+    return total_reward / N, (total_action_sum * high_len) / (T * N)
 
 
 def save_agent(agent):
@@ -46,72 +48,28 @@ if __name__ == "__main__":
     time_stamp = str(int(time.time()))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-N", default=50, type=int, help="num of episodes for each rollout"
-    )
-    parser.add_argument(
-        "-W", default=20, type=int, help="arm up length"
-    )
-    parser.add_argument(
-        "-U", default=40, type=int, help="joint training length"
-    )
-    parser.add_argument(
-        "--tasks", default=2000, type=int, help="number of tasks"
-    )
-    parser.add_argument(
-        "-K", default=10, type=int, help="number of optimization epochs"
-    )
-    parser.add_argument(
-        "-T", default=300, type=int, help="horizon"
-    )
-    parser.add_argument(
-        "--high_len", default=60, type=int, help="master action length"
-    )
-    parser.add_argument(
-        "--bs", default=64, type=int, help="batch size"
-    )
-    parser.add_argument(
-        "--llr", default=3e-4, type=float, help="low-level policy learning rate"
-    )
-    parser.add_argument(
-        "--hlr", default=1e-2, type=float, help="high-level policy learning rate"
-    )
-    parser.add_argument(
-        "--gamma", default=0.99, type=float, help="decay factor"
-    )
-    parser.add_argument(
-        "--lam", default=0.95, type=float, help="GAE prameter"
-    )
-    parser.add_argument(
-        "--epsilon", default=0.2, type=float, help="clipping parameter"
-    )
-    parser.add_argument(
-        "--c1", default=0.5, type=float, help="critic loss parameter"
-    )
-    parser.add_argument(
-        "--c2", default=0, type=float, help="entropy loss parameter for high-level policy",
-    )
-    parser.add_argument(
-        "--c2_low", default=0, type=float, help="entropy loss for low level policy"
-    )
-    parser.add_argument(
-        "--record", default=1, type=int, help="num of tasks between each record"
-    )
-    parser.add_argument(
-        "--seed", default=626, type=int, help="random seed"
-    )
-    parser.add_argument(
-        "--num_low", default=2, type=int, help="number of low level policies"
-    )
-    parser.add_argument(
-        "--env", default="AntBandits-v1", type=str, help="name of the environment"
-    )
-    parser.add_argument(
-        "-c", action="store_true", help="continue training"
-    )
-    parser.add_argument(
-        "--virdis", action="store_true", help="set virutal display"
-    )
+    parser.add_argument( "-N", default=40, type=int, help="num of episodes for each rollout")
+    parser.add_argument("-W", default=20, type=int, help="arm up length")
+    parser.add_argument("-U", default=40, type=int, help="joint training length")
+    parser.add_argument( "--tasks", default=2000, type=int, help="number of tasks")
+    parser.add_argument("-K", default=10, type=int, help="number of optimization epochs")
+    parser.add_argument("-T", default=300, type=int, help="horizon")
+    parser.add_argument("--high_len", default=60, type=int, help="master action length")
+    parser.add_argument( "--bs", default=64, type=int, help="batch size")
+    parser.add_argument("--llr", default=3e-4, type=float, help="low-level policy learning rate")
+    parser.add_argument( "--hlr", default=1e-2, type=float, help="high-level policy learning rate")
+    parser.add_argument("--gamma", default=0.99, type=float, help="decay factor")
+    parser.add_argument("--lam", default=0.95, type=float, help="GAE prameter")
+    parser.add_argument("--epsilon", default=0.2, type=float, help="clipping parameter")
+    parser.add_argument("--c1", default=0.5, type=float, help="critic loss parameter")
+    parser.add_argument("--c2", default=0, type=float, help="entropy loss parameter for high-level policy",)
+    parser.add_argument("--c2_low", default=0, type=float, help="entropy loss for low level policy")
+    parser.add_argument("--record", default=1, type=int, help="num of tasks between each record")
+    parser.add_argument("--seed", default=626, type=int, help="random seed")
+    parser.add_argument("--num_low", default=2, type=int, help="number of low level policies")
+    parser.add_argument("--env", default="AntBandits-v1", type=str, help="name of the environment")
+    parser.add_argument("-c", action="store_true", help="continue training")
+    parser.add_argument("--virdis", action="store_true", help="set virutal display")
 
     args = parser.parse_args()
 
@@ -143,7 +101,7 @@ if __name__ == "__main__":
     if args.c:
         agent = load_agent()
     else:
-        agent = agent.mlshAgent(
+        agent = agent.MLSHAgent(
             env.observation_space.shape[0],
             action_size,
             args.N * args.T,
@@ -153,16 +111,17 @@ if __name__ == "__main__":
             disc=disc,
         )
 
+    # save agent at exit
     atexit.register(save_agent, agent)
 
     # main training loop
     for i in range(args.tasks):
         print("Current task num:", i)
         env.reset()
-        # randomize task
+        # sample task from distribution
         env.env.randomizeCorrect()
         print("Current goal:", env.env.realgoal)
-        # randomly initialize high-level policy
+        # randomly re-initialize high-level policy
         agent.high_init()
 
         # log video when high-level policy is just initialized
@@ -193,7 +152,7 @@ if __name__ == "__main__":
                 }
             )
 
-        # log reward when high-level policy is updated
+        # validation run when high-level policy is updated
         trained_reward, train_action = rollout(
             env, agent, args.N, args.T, args.high_len, args.gamma, args.lam, test=True
         )
