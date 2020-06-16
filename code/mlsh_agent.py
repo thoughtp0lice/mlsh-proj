@@ -111,7 +111,7 @@ class MLSHAgent:
             for _ in range(high_len):
                 low_action, _, _ = self.low[high_action].actor.action(state)
                 state, _, done, _ = env.step(low_action)
-                ostatebs = self.rms.filter(state)
+                state = self.rms.filter(state)
                 video.append(env.render(mode="rgb_array"))
                 t += 1
                 if done:
