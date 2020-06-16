@@ -276,7 +276,7 @@ class MLSHAgent:
                 break
 
         prev_d = torch.tensor(low_roll["prev_states"][-rollout_len:]).float()
-        post_d = torch.tensor(post_states[-rollout_len:]).float()
+        post_d = torch.tensor(low_roll['post_states'][-rollout_len:]).float()
         rewards_d = torch.tensor(low_roll["rewards"][-rollout_len:]).float()
         dones_d = torch.tensor(low_roll["dones"][-rollout_len:]).float()
 
